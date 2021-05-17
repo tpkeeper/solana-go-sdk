@@ -1,8 +1,8 @@
 package tokenprog
 
 import (
-	"github.com/portto/solana-go-sdk/common"
-	"github.com/portto/solana-go-sdk/types"
+	"github.com/tpkeeper/solana-go-sdk/common"
+	"github.com/tpkeeper/solana-go-sdk/types"
 )
 
 type Instruction uint8

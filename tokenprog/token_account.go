@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/portto/solana-go-sdk/common"
+	"github.com/tpkeeper/solana-go-sdk/common"
 )
 
 const TokenAccountSize = 165
