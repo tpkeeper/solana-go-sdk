@@ -1,8 +1,8 @@
 # solana-go-sdk
-[![Go](https://github.com/tpkeeper/solana-go-sdk/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/tpkeeper/solana-go-sdk/actions/workflows/go.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/tpkeeper/solana-go-sdk)](https://goreportcard.com/report/github.com/tpkeeper/solana-go-sdk)
 
 Solana Golang SDK
+
+forked from portto/solana-go-sdk
 
 ## Getting Started
 
