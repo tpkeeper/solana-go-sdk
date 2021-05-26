@@ -43,7 +43,32 @@ func serializeData(v reflect.Value) ([]byte, error) {
 		b := make([]byte, 8)
 		binary.LittleEndian.PutUint64(b, v.Uint())
 		return b, nil
-	case reflect.Slice, reflect.Array:
+	case reflect.Slice:
+		data := make([]byte, 0)
+		lenData, err := serializeData(reflect.ValueOf(uint32(v.Len())))
+		if err != nil {
+			return nil, err
+		}
+		data = append(data, lenData...)
+
+		switch v.Type().Elem().Kind() {
+		case reflect.Uint8:
+			for i := 0; i < v.Len(); i++ {
+				data = append(data, byte(v.Index(i).Uint()))
+			}
+			return data, nil
+		case reflect.Array:
+			for i := 0; i < v.Len(); i++ {
+				d, err := serializeData(v.Index(i))
+				if err != nil {
+					return nil, err
+				}
+				data = append(data, d...)
+			}
+			return data, nil
+		}
+		return nil, fmt.Errorf("unsupport type: %v, elem: %v", v.Kind(), v.Type().Elem().Kind())
+	case reflect.Array:
 		switch v.Type().Elem().Kind() {
 		case reflect.Uint8:
 			b := make([]byte, 0, v.Len())
@@ -51,8 +76,18 @@ func serializeData(v reflect.Value) ([]byte, error) {
 				b = append(b, byte(v.Index(i).Uint()))
 			}
 			return b, nil
+		case reflect.Array:
+			data := make([]byte, 0)
+			for i := 0; i < v.Len(); i++ {
+				d, err := serializeData(v.Index(i))
+				if err != nil {
+					return nil, err
+				}
+				data = append(data, d...)
+			}
+			return data, nil
 		}
-		return nil, fmt.Errorf("unsupport type: %v, elem: %v", v.Kind(), v.Elem().Kind())
+		return nil, fmt.Errorf("unsupport type: %v, elem: %v", v.Kind(), v.Type().Elem().Kind())
 	case reflect.String:
 		return []byte(v.String()), nil
 	case reflect.Struct:

@@ -18,7 +18,8 @@ type Transaction struct {
 
 func (tx *Transaction) sign(accounts []Account) (*Transaction, error) {
 	if int(tx.Message.Header.NumRequireSignatures) != len(accounts) {
-		return nil, errors.New("signer's num not match")
+		return nil, fmt.Errorf("signer's num not match,require %d real is %d",
+			tx.Message.Header.NumRequireSignatures, len(accounts))
 	}
 
 	message, err := tx.Message.Serialize()
