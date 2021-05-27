@@ -9,5 +9,5 @@ var (
 	Secp256k1ProgramID                 = PublicKeyFromString("KeccakSecp256k11111111111111111111111111111")
 	TokenProgramID                     = PublicKeyFromString("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
 	SPLAssociatedTokenAccountProgramID = PublicKeyFromString("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")
-	MultisigProgramID                  = PublicKeyFromString("5tUzuA1bVHUZ4B7QWHGuC4dFSxnfGk9B7i1dxft5FJA3")
+	MultisigProgramID                  = PublicKeyFromString("Do8ecAmsYpmWjTkewHRbDu5aPn2XjpMK433bSdggWE3K")
 )

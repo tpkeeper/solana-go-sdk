@@ -3,8 +3,10 @@ package multisigprog_test
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"testing"
 
+	"github.com/mr-tron/base58"
 	"github.com/tpkeeper/solana-go-sdk/client"
 	"github.com/tpkeeper/solana-go-sdk/common"
 	"github.com/tpkeeper/solana-go-sdk/multisigprog"
@@ -22,6 +24,7 @@ func TestCreateMultisig(t *testing.T) {
 	feePayer := types.AccountFromPrivateKeyBytes([]byte{179, 95, 213, 234, 125, 167, 246, 188, 230, 134, 181, 219, 31, 146, 239, 75, 190, 124, 112, 93, 187, 140, 178, 119, 90, 153, 207, 178, 137, 5, 53, 71, 116, 28, 190, 12, 249, 238, 110, 135, 109, 21, 196, 36, 191, 19, 236, 175, 229, 204, 68, 180, 130, 102, 71, 239, 41, 53, 152, 159, 175, 124, 180, 6})
 
 	multisigAccount := types.NewAccount()
+	transactionAccount := types.NewAccount()
 	accountA := types.NewAccount()
 	accountB := types.NewAccount()
 	accountC := types.NewAccount()
@@ -39,7 +42,8 @@ func TestCreateMultisig(t *testing.T) {
 				common.MultisigProgramID,
 				1000000000,
 				200,
-			), multisigprog.CreateMultisig(
+			),
+			multisigprog.CreateMultisig(
 				multisigAccount.PublicKey,
 				owners,
 				2,
@@ -54,38 +58,95 @@ func TestCreateMultisig(t *testing.T) {
 		t.Fatalf("generate tx error, err: %v\n", err)
 	}
 
-	txSig, err := c.SendRawTransaction(context.Background(), rawTx)
+	txHash, err := c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
 		t.Fatalf("send tx error, err: %v\n", err)
 	}
 
-	t.Log("createMultisigAccount txHash:", txSig)
+	t.Log("createMultisig txHash:", txHash)
 	t.Log("feePayer:", feePayer.PublicKey.ToBase58())
 	t.Log("multisigAccount:", multisigAccount.PublicKey.ToBase58())
-
-	// rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
-	// 	Instructions: []types.Instruction{
-	// 		multisigprog.CreateMultisig(
-	// 			multisigAccount.PublicKey,
-	// 			owners,
-	// 			2,
-	// 			uint8(nonce),
-	// 		),
-	// 	},
-	// 	Signers:         []types.Account{multisigAccount},
-	// 	FeePayer:        multisigAccount.PublicKey,
-	// 	RecentBlockHash: res.Blockhash,
-	// })
-	// if err != nil {
-	// 	t.Fatalf("generate tx error, err: %v\n", err)
-	// }
-
-	// txSig, err = c.SendRawTransaction(context.Background(), rawTx)
-	// if err != nil {
-	// 	t.Fatalf("send tx error, err: %v\n", err)
-	// }
-	// t.Log("createMultisig txHash:", txSig)
+	t.Log("transactionAccount:", transactionAccount.PublicKey.ToBase58())
 	t.Log("multiSigner:", multiSigner.ToBase58())
+	t.Log("accountA", accountA.PublicKey.ToBase58())
+	t.Log("accountB", accountB.PublicKey.ToBase58())
+	t.Log("accountC", accountC.PublicKey.ToBase58())
+
+	res, err = c.GetRecentBlockhash(context.Background())
+	if err != nil {
+		t.Fatalf("get recent block hash error, err: %v\n", err)
+	}
+
+	txUsedAccounts := []multisigprog.TransactionUsedAccount{
+		{
+			Pubkey:     multiSigner,
+			IsSigner:   true,
+			IsWritable: true,
+		},
+		{
+			Pubkey:     accountA.PublicKey,
+			IsSigner:   false,
+			IsWritable: true,
+		},
+	}
+
+	transferInstruct := sysprog.Transfer(multiSigner, accountA.PublicKey, 1000000000)
+
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			sysprog.CreateAccount(
+				feePayer.PublicKey,
+				transactionAccount.PublicKey,
+				common.MultisigProgramID,
+				1000000000,
+				1000,
+			),
+		},
+		Signers:         []types.Account{feePayer, transactionAccount},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+	if err != nil {
+		t.Fatalf("generate create account tx error, err: %v\n", err)
+	}
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("create transaction account hash ", txHash)
+
+	res, err = c.GetRecentBlockhash(context.Background())
+	if err != nil {
+		t.Fatalf("get recent block hash error, err: %v\n", err)
+	}
+
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			multisigprog.CreateTransaction(
+				common.SystemProgramID,
+				txUsedAccounts,
+				transferInstruct.Data,
+				multisigAccount.PublicKey,
+				transactionAccount.PublicKey,
+				accountA.PublicKey,
+			),
+		},
+		Signers:         []types.Account{accountA, feePayer},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+
+	if err != nil {
+		t.Fatalf("generate createTransaction tx error, err: %v\n", err)
+	}
+
+	t.Log("rawtx :", hex.EncodeToString(rawTx))
+	t.Log("rawtx :", base58.Encode(rawTx))
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("Create Transaction txHash:", txHash)
 
 }
 
@@ -110,10 +171,6 @@ func TestCreateAccountEncode(t *testing.T) {
 }
 
 func TestCreateMultisigEncode(t *testing.T) {
-	// 	ownerA: EBGtN5bmAB62mFF3PdNkd8qkd11khf1BP6gJqicEnnBR
-	// ownerB: GmNSbLgMhvDpfcT9gweUWrZCvbaJjQyAx3arZW8QFj3q
-	// ownerC: Ans2xqmLQTCp4pFgPyQzaABnjsxPVJyir3pNik7hbo5G
-
 	owners := []common.PublicKey{
 		common.PublicKeyFromString("EBGtN5bmAB62mFF3PdNkd8qkd11khf1BP6gJqicEnnBR"),
 		common.PublicKeyFromString("GmNSbLgMhvDpfcT9gweUWrZCvbaJjQyAx3arZW8QFj3q"),
@@ -140,6 +197,96 @@ func TestCreateMultisigEncode(t *testing.T) {
 	}
 }
 
-// 00000000c3c9b333fb4f057651b8cf7659ecc656a7c13c1fbd7228cfad26a0fa00b78ca8ea3d1a6a4e7b75886741b7646704c33eab8532b4960991e873a7708781053acc9178e4668d1448e7269f1bf92acb4a001a669a8fb1839b839a5b9cd160d5f93f0200000000000000fd
-// 03000000c3c9b333fb4f057651b8cf7659ecc656a7c13c1fbd7228cfad26a0fa00b78ca8ea3d1a6a4e7b75886741b7646704c33eab8532b4960991e873a7708781053acc9178e4668d1448e7269f1bf92acb4a001a669a8fb1839b839a5b9cd160d5f93f0200000000000000fd
-// f4a3cfbe2a656d83
+func TestCreateTransactionEncode(t *testing.T) {
+	multiSigner := common.PublicKeyFromString("HqJYsLD9pUVU2k6SsVXYDUbMhxo8rSU8saz2dTHhHyrt")
+	accountA := common.PublicKeyFromString("F5awAMuj12auUYowaDwJHmuyKu5wxVqSn6Px87Mq5ymt")
+	txUsedAccounts := []multisigprog.TransactionUsedAccount{
+		{
+			Pubkey:     multiSigner,
+			IsSigner:   true,
+			IsWritable: true,
+		},
+		{
+			Pubkey:     accountA,
+			IsSigner:   false,
+			IsWritable: true,
+		},
+	}
+	transferInstruct := sysprog.Transfer(multiSigner, accountA, 1000000000)
+
+	data, err := common.SerializeData(struct {
+		Instruction       multisigprog.Instruction
+		TxUsedProgramID   common.PublicKey
+		TxUsedAccounts    []multisigprog.TransactionUsedAccount
+		TxInstructionData []byte
+	}{
+		Instruction:       multisigprog.InstructionCreateTransaction,
+		TxUsedProgramID:   common.SystemProgramID,
+		TxUsedAccounts:    txUsedAccounts,
+		TxInstructionData: transferInstruct.Data,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("hex", hex.EncodeToString(data))
+	t.Log("hex", hex.EncodeToString(transferInstruct.Data))
+	if hex.EncodeToString(data) != "9207a387662c6afa000000000000000000000000000000000000000000000000000000000000000002000000fa1ab67f21842ba007d95d580b0e2f10158213914c25297ef6c2ca8b64339dad0101d1304f2dec3a966aef913b4fa7128a5967a3388e7db6fbfd544708934179642b00010c0000000200000000ca9a3b00000000" {
+		t.Fatal("TestCreateMultisigEncode failed")
+	}
+}
+
+func TestDecodeBlockHash(t *testing.T) {
+	bts, _ := base58.Decode("5BHS9nELmmRXU3PjHPPLvq8WZFej3QbzD7sm3XGdnTe9")
+	t.Log("bts", hex.EncodeToString(bts))
+	a0, _ := hex.DecodeString("741cbe0cf9ee6e876d15c424bf13ecafe5cc44b4826647ef2935989faf7cb406")
+	t.Log(base58.Encode(a0))
+	a1, _ := hex.DecodeString("ad18ced39b21a5db962fc624926dbd329d9a366c1247e8d46afabcf4b6f85a04")
+	t.Log(base58.Encode(a1))
+	a2, _ := hex.DecodeString("730ca98ea9102311f5fed863ae1b5d9e2611185044c54391e7f49d2de73bc19e")
+	t.Log(base58.Encode(a2))
+	a3, _ := hex.DecodeString("06a7d517192c5c51218cc94c3d4af17f58daee089ba1fd44e3dbd98a00000000")
+	t.Log(base58.Encode(a3))
+	a4, _ := hex.DecodeString("489f06d61e0eacb7c70cb77bc61378b4592404d566a7f695c859f673f8fff9c0")
+	t.Log(base58.Encode(a4))
+	a5, _ := hex.DecodeString("8c78a414865fd46375d0ff861a917425f375a69ca3ec51a46223f58d3af8efd9")
+	t.Log(base58.Encode(a5))
+	a7, _ := hex.DecodeString("02ecfa8e8d9c1b690ce8ecdbcbffcab4ee3cbbd28a1bfbc461e2a5c7c72fd6076e6c198e875bb944041f768938cc701c134881dfe5ea899e15c6b65ce69d78aa0cb53d7a26c46a66dcffafcbfde4e816952dea4fb7c6f6428ac2741a498a4ee05386dea9b6fc0c6672ceb017ab0d72fdec67e2e0358f3884fcb7e46d14265cb30602010306741cbe0cf9ee6e876d15c424bf13ecafe5cc44b4826647ef2935989faf7cb406ad18ced39b21a5db962fc624926dbd329d9a366c1247e8d46afabcf4b6f85a04730ca98ea9102311f5fed863ae1b5d9e2611185044c54391e7f49d2de73bc19e06a7d517192c5c51218cc94c3d4af17f58daee089ba1fd44e3dbd98a00000000489f06d61e0eacb7c70cb77bc61378b4592404d566a7f695c859f673f8fff9c08c78a414865fd46375d0ff861a917425f375a69ca3ec51a46223f58d3af8efd953da38e1d967a736d37c32a2ca9e82f41dd00f416db8f2d48080a06c7f29cc620104040502010380019207a387662c6afa000000000000000000000000000000000000000000000000000000000000000002000000c886d0a583199cc093143c89901fa9f4d554aefd1e24d3ccba1e780d36a937ae0101ad18ced39b21a5db962fc624926dbd329d9a366c1247e8d46afabcf4b6f85a0400010c0000000200000000ca9a3b00000000")
+	t.Log(base58.Encode(a7))
+
+}
+
+func TestGetTx(t *testing.T) {
+	c := client.NewClient(client.DevnetRPCEndpoint)
+	tx, err := c.GetConfirmedTransaction(context.Background(), "3F6Dkh1JfX8zaVQgbRSNqwigqhGSmErvWPRz7D27CTUcWpf1j2dkWkc4m6u7K6gehqnGp1DPTAvgJELF7QpDaYje")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(fmt.Sprintf("%+v",tx.Transaction.Message))
+}
+
+// 02
+// ecfa8e8d9c1b690ce8ecdbcbffcab4ee3cbbd28a1bfbc461e2a5c7c72fd6076e6c198e875bb944041f768938cc701c134881dfe5ea899e15c6b65ce69d78aa0c
+// b53d7a26c46a66dcffafcbfde4e816952dea4fb7c6f6428ac2741a498a4ee05386dea9b6fc0c6672ceb017ab0d72fdec67e2e0358f3884fcb7e46d14265cb306
+// 02
+// 01
+// 03
+// 06
+
+// 741cbe0cf9ee6e876d15c424bf13ecafe5cc44b4826647ef2935989faf7cb406
+
+// ad18ced39b21a5db962fc624926dbd329d9a366c1247e8d46afabcf4b6f85a04
+// 730ca98ea9102311f5fed863ae1b5d9e2611185044c54391e7f49d2de73bc19e
+// 06a7d517192c5c51218cc94c3d4af17f58daee089ba1fd44e3dbd98a00000000
+
+// 489f06d61e0eacb7c70cb77bc61378b4592404d566a7f695c859f673f8fff9c0
+
+// 8c78a414865fd46375d0ff861a917425f375a69ca3ec51a46223f58d3af8efd9
+
+// 53da38e1d967a736d37c32a2ca9e82f41dd00f416db8f2d48080a06c7f29cc62
+
+// 01 inscount
+// 04 progid
+// 04 acc count
+// 05020103
+// 80 data len
+// 019207a387662c6afa000000000000000000000000000000000000000000000000000000000000000002000000c886d0a583199cc093143c89901fa9f4d554aefd1e24d3ccba1e780d36a937ae0101ad18ced39b21a5db962fc624926dbd329d9a366c1247e8d46afabcf4b6f85a0400010c0000000200000000ca9a3b00000000

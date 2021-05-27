@@ -51,23 +51,14 @@ func serializeData(v reflect.Value) ([]byte, error) {
 		}
 		data = append(data, lenData...)
 
-		switch v.Type().Elem().Kind() {
-		case reflect.Uint8:
-			for i := 0; i < v.Len(); i++ {
-				data = append(data, byte(v.Index(i).Uint()))
+		for i := 0; i < v.Len(); i++ {
+			d, err := serializeData(v.Index(i))
+			if err != nil {
+				return nil, err
 			}
-			return data, nil
-		case reflect.Array:
-			for i := 0; i < v.Len(); i++ {
-				d, err := serializeData(v.Index(i))
-				if err != nil {
-					return nil, err
-				}
-				data = append(data, d...)
-			}
-			return data, nil
+			data = append(data, d...)
 		}
-		return nil, fmt.Errorf("unsupport type: %v, elem: %v", v.Kind(), v.Type().Elem().Kind())
+		return data,nil
 	case reflect.Array:
 		switch v.Type().Elem().Kind() {
 		case reflect.Uint8:
