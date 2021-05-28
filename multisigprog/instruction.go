@@ -70,8 +70,7 @@ func CreateTransaction(
 	txInstructionData []byte,
 	multisigAccount common.PublicKey,
 	txAccount common.PublicKey,
-	proposalAccount common.PublicKey,
-) types.Instruction {
+	proposalAccount common.PublicKey) types.Instruction {
 
 	data, err := common.SerializeData(struct {
 		Instruction       Instruction

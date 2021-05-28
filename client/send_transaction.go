@@ -24,7 +24,7 @@ func (s *Client) SendRawTransaction(ctx context.Context, tx []byte) (string, err
 		[]interface{}{
 			base64.StdEncoding.EncodeToString([]byte(tx)),
 			SendTransactionConfig{
-				SkipPreflight:       false,
+				SkipPreflight:       true,
 				PreflightCommitment: CommitmentFinalized,
 				Encoding:            "base64",
 			},

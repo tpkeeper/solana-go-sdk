@@ -57,7 +57,7 @@ func TestMultisig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("generate tx error, err: %v\n", err)
 	}
-
+	t.Log("rawtx base58:", base58.Encode(rawTx))
 	txHash, err := c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
 		t.Fatalf("send tx error, err: %v\n", err)
@@ -65,14 +65,13 @@ func TestMultisig(t *testing.T) {
 
 	t.Log("createMultisig txHash:", txHash)
 	t.Log("feePayer:", feePayer.PublicKey.ToBase58())
-	t.Log("multisigAccount:", multisigAccount.PublicKey.ToBase58())
-	t.Log("transactionAccount:", transactionAccount.PublicKey.ToBase58())
+	t.Log("multisig account:", multisigAccount.PublicKey.ToBase58())
+	t.Log("transaction account:", transactionAccount.PublicKey.ToBase58())
 	t.Log("multiSigner:", multiSigner.ToBase58())
 	t.Log("accountA", accountA.PublicKey.ToBase58())
 	t.Log("accountB", accountB.PublicKey.ToBase58())
 	t.Log("accountC", accountC.PublicKey.ToBase58())
 
-	
 	res, err = c.GetRecentBlockhash(context.Background())
 	if err != nil {
 		t.Fatalf("get recent block hash error, err: %v\n", err)
@@ -141,8 +140,7 @@ func TestMultisig(t *testing.T) {
 		t.Fatalf("generate createTransaction tx error, err: %v\n", err)
 	}
 
-	t.Log("rawtx :", hex.EncodeToString(rawTx))
-	t.Log("rawtx :", base58.Encode(rawTx))
+	t.Log("rawtx base58:", base58.Encode(rawTx))
 	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
 		t.Fatalf("send tx error, err: %v\n", err)
@@ -262,32 +260,6 @@ func TestGetTx(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(fmt.Sprintf("%+v",tx.Transaction.Message))
+	t.Log(fmt.Sprintf("%+v", tx.Transaction.Message))
 }
 
-// 02
-// ecfa8e8d9c1b690ce8ecdbcbffcab4ee3cbbd28a1bfbc461e2a5c7c72fd6076e6c198e875bb944041f768938cc701c134881dfe5ea899e15c6b65ce69d78aa0c
-// b53d7a26c46a66dcffafcbfde4e816952dea4fb7c6f6428ac2741a498a4ee05386dea9b6fc0c6672ceb017ab0d72fdec67e2e0358f3884fcb7e46d14265cb306
-// 02
-// 01
-// 03
-// 06
-
-// 741cbe0cf9ee6e876d15c424bf13ecafe5cc44b4826647ef2935989faf7cb406
-
-// ad18ced39b21a5db962fc624926dbd329d9a366c1247e8d46afabcf4b6f85a04
-// 730ca98ea9102311f5fed863ae1b5d9e2611185044c54391e7f49d2de73bc19e
-// 06a7d517192c5c51218cc94c3d4af17f58daee089ba1fd44e3dbd98a00000000
-
-// 489f06d61e0eacb7c70cb77bc61378b4592404d566a7f695c859f673f8fff9c0
-
-// 8c78a414865fd46375d0ff861a917425f375a69ca3ec51a46223f58d3af8efd9
-
-// 53da38e1d967a736d37c32a2ca9e82f41dd00f416db8f2d48080a06c7f29cc62
-
-// 01 inscount
-// 04 progid
-// 04 acc count
-// 05020103
-// 80 data len
-// 019207a387662c6afa000000000000000000000000000000000000000000000000000000000000000002000000c886d0a583199cc093143c89901fa9f4d554aefd1e24d3ccba1e780d36a937ae0101ad18ced39b21a5db962fc624926dbd329d9a366c1247e8d46afabcf4b6f85a0400010c0000000200000000ca9a3b00000000
