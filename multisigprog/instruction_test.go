@@ -14,7 +14,7 @@ import (
 	"github.com/tpkeeper/solana-go-sdk/types"
 )
 
-func TestCreateMultisig(t *testing.T) {
+func TestMultisig(t *testing.T) {
 	c := client.NewClient(client.DevnetRPCEndpoint)
 
 	res, err := c.GetRecentBlockhash(context.Background())
@@ -72,6 +72,7 @@ func TestCreateMultisig(t *testing.T) {
 	t.Log("accountB", accountB.PublicKey.ToBase58())
 	t.Log("accountC", accountC.PublicKey.ToBase58())
 
+	
 	res, err = c.GetRecentBlockhash(context.Background())
 	if err != nil {
 		t.Fatalf("get recent block hash error, err: %v\n", err)
