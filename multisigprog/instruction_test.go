@@ -23,6 +23,11 @@ func TestMultisig(t *testing.T) {
 	}
 	feePayer := types.AccountFromPrivateKeyBytes([]byte{179, 95, 213, 234, 125, 167, 246, 188, 230, 134, 181, 219, 31, 146, 239, 75, 190, 124, 112, 93, 187, 140, 178, 119, 90, 153, 207, 178, 137, 5, 53, 71, 116, 28, 190, 12, 249, 238, 110, 135, 109, 21, 196, 36, 191, 19, 236, 175, 229, 204, 68, 180, 130, 102, 71, 239, 41, 53, 152, 159, 175, 124, 180, 6})
 
+	_, err = c.RequestAirdrop(context.Background(), feePayer.PublicKey.ToBase58(), 10e9)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	multisigAccount := types.NewAccount()
 	transactionAccount := types.NewAccount()
 	accountA := types.NewAccount()
