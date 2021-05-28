@@ -57,7 +57,7 @@ func TestMultisig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("generate tx error, err: %v\n", err)
 	}
-	t.Log("rawtx base58:", base58.Encode(rawTx))
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
 	txHash, err := c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
 		t.Fatalf("send tx error, err: %v\n", err)
@@ -71,6 +71,28 @@ func TestMultisig(t *testing.T) {
 	t.Log("accountA", accountA.PublicKey.ToBase58())
 	t.Log("accountB", accountB.PublicKey.ToBase58())
 	t.Log("accountC", accountC.PublicKey.ToBase58())
+
+	//send 2 sol to account multisigner
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			sysprog.Transfer(
+				feePayer.PublicKey,
+				multiSigner,
+				2000000000,
+			),
+		},
+		Signers:         []types.Account{feePayer},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+	if err != nil {
+		t.Fatalf("generate tx error, err: %v\n", err)
+	}
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
 
 	res, err = c.GetRecentBlockhash(context.Background())
 	if err != nil {
@@ -140,12 +162,85 @@ func TestMultisig(t *testing.T) {
 		t.Fatalf("generate createTransaction tx error, err: %v\n", err)
 	}
 
-	t.Log("rawtx base58:", base58.Encode(rawTx))
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
 	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
 		t.Fatalf("send tx error, err: %v\n", err)
 	}
 	t.Log("Create Transaction txHash:", txHash)
+
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			multisigprog.Approve(
+				multisigAccount.PublicKey,
+				transactionAccount.PublicKey,
+				accountB.PublicKey,
+			),
+		},
+		Signers:         []types.Account{accountB, feePayer},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+
+	if err != nil {
+		t.Fatalf("generate Approve tx error, err: %v\n", err)
+	}
+
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("Approve txHash:", txHash)
+
+	remainingAccounts := []types.AccountMeta{
+		{
+			PubKey:     multiSigner,
+			IsWritable: true,
+			IsSigner:   false,
+		},
+		{
+			PubKey:     accountA.PublicKey,
+			IsWritable: true,
+			IsSigner:   false,
+		},
+		{
+			PubKey:     common.SystemProgramID,
+			IsWritable: false,
+			IsSigner:   false,
+		},
+
+		{
+			PubKey:     common.MultisigProgramID,
+			IsWritable: false,
+			IsSigner:   false,
+		},
+	}
+
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			multisigprog.ExecuteTransaction(
+				multisigAccount.PublicKey,
+				multiSigner,
+				transactionAccount.PublicKey,
+				remainingAccounts,
+			),
+		},
+		Signers:         []types.Account{feePayer},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+
+	if err != nil {
+		t.Fatalf("generate ExecuteTransaction tx error, err: %v\n", err)
+	}
+
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("ExecuteTransaction txHash:", txHash)
 
 }
 
@@ -262,4 +357,3 @@ func TestGetTx(t *testing.T) {
 	}
 	t.Log(fmt.Sprintf("%+v", tx.Transaction.Message))
 }
-

@@ -98,3 +98,47 @@ func CreateTransaction(
 		Data: data,
 	}
 }
+
+func Approve(multisigAccount, txAccount, approverAccount common.PublicKey) types.Instruction {
+	data, err := common.SerializeData(struct {
+		Instruction Instruction
+	}{
+		Instruction: InstructionApprove,
+	})
+	if err != nil {
+		panic(err)
+	}
+	return types.Instruction{
+		ProgramID: common.MultisigProgramID,
+		Accounts: []types.AccountMeta{
+			{PubKey: multisigAccount, IsSigner: false, IsWritable: false},
+			{PubKey: txAccount, IsSigner: false, IsWritable: true},
+			{PubKey: approverAccount, IsSigner: true, IsWritable: false},
+		},
+		Data: data,
+	}
+}
+
+func ExecuteTransaction(multisigAccount, multiSiner, txAccount common.PublicKey,
+	remainingAccounts []types.AccountMeta) types.Instruction {
+
+	data, err := common.SerializeData(struct {
+		Instruction Instruction
+	}{
+		Instruction: InstructionExecuteTransaction,
+	})
+	if err != nil {
+		panic(err)
+	}
+	accounts := []types.AccountMeta{
+		{PubKey: multisigAccount, IsSigner: false, IsWritable: false},
+		{PubKey: multiSiner, IsSigner: false, IsWritable: false},
+		{PubKey: txAccount, IsSigner: false, IsWritable: true},
+	}
+
+	return types.Instruction{
+		ProgramID: common.MultisigProgramID,
+		Accounts:  append(accounts, remainingAccounts...),
+		Data:      data,
+	}
+}
