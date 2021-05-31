@@ -10,10 +10,9 @@ import (
 type Instruction [8]byte
 
 var (
-	InstructionCreateMultisig     Instruction
-	InstructionCreateTransaction  Instruction
-	InstructionApprove            Instruction
-	InstructionExecuteTransaction Instruction
+	InstructionCreateMultisig    Instruction
+	InstructionCreateTransaction Instruction
+	InstructionApprove           Instruction
 )
 
 func init() {
@@ -23,8 +22,6 @@ func init() {
 	copy(InstructionCreateTransaction[:], createTransactionHash[:8])
 	approveHash := sha256.Sum256([]byte("global::approve"))
 	copy(InstructionApprove[:], approveHash[:8])
-	executeTransactionHash := sha256.Sum256([]byte("global::execute_transaction"))
-	copy(InstructionExecuteTransaction[:], executeTransactionHash[:8])
 }
 
 func CreateMultisig(
@@ -99,7 +96,9 @@ func CreateTransaction(
 	}
 }
 
-func Approve(multisigAccount, txAccount, approverAccount common.PublicKey) types.Instruction {
+func Approve(multisigAccount, multiSiner, txAccount, approverAccount common.PublicKey,
+	remainingAccounts []types.AccountMeta) types.Instruction {
+
 	data, err := common.SerializeData(struct {
 		Instruction Instruction
 	}{
@@ -108,32 +107,12 @@ func Approve(multisigAccount, txAccount, approverAccount common.PublicKey) types
 	if err != nil {
 		panic(err)
 	}
-	return types.Instruction{
-		ProgramID: common.MultisigProgramID,
-		Accounts: []types.AccountMeta{
-			{PubKey: multisigAccount, IsSigner: false, IsWritable: false},
-			{PubKey: txAccount, IsSigner: false, IsWritable: true},
-			{PubKey: approverAccount, IsSigner: true, IsWritable: false},
-		},
-		Data: data,
-	}
-}
 
-func ExecuteTransaction(multisigAccount, multiSiner, txAccount common.PublicKey,
-	remainingAccounts []types.AccountMeta) types.Instruction {
-
-	data, err := common.SerializeData(struct {
-		Instruction Instruction
-	}{
-		Instruction: InstructionExecuteTransaction,
-	})
-	if err != nil {
-		panic(err)
-	}
 	accounts := []types.AccountMeta{
 		{PubKey: multisigAccount, IsSigner: false, IsWritable: false},
 		{PubKey: multiSiner, IsSigner: false, IsWritable: false},
 		{PubKey: txAccount, IsSigner: false, IsWritable: true},
+		{PubKey: approverAccount, IsSigner: true, IsWritable: false},
 	}
 
 	return types.Instruction{

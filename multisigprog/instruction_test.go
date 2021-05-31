@@ -176,30 +176,6 @@ func TestMultisigTransfer(t *testing.T) {
 	}
 	t.Log("Create Transaction txHash:", txHash)
 
-	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
-		Instructions: []types.Instruction{
-			multisigprog.Approve(
-				multisigAccount.PublicKey,
-				transactionAccount.PublicKey,
-				accountB.PublicKey,
-			),
-		},
-		Signers:         []types.Account{accountB, feePayer},
-		FeePayer:        feePayer.PublicKey,
-		RecentBlockHash: res.Blockhash,
-	})
-
-	if err != nil {
-		t.Fatalf("generate Approve tx error, err: %v\n", err)
-	}
-
-	// t.Log("rawtx base58:", base58.Encode(rawTx))
-	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
-	if err != nil {
-		t.Fatalf("send tx error, err: %v\n", err)
-	}
-	t.Log("Approve txHash:", txHash)
-
 	remainingAccounts := []types.AccountMeta{
 		{
 			PubKey:     multiSigner,
@@ -226,20 +202,21 @@ func TestMultisigTransfer(t *testing.T) {
 
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
-			multisigprog.ExecuteTransaction(
+			multisigprog.Approve(
 				multisigAccount.PublicKey,
 				multiSigner,
 				transactionAccount.PublicKey,
+				accountB.PublicKey,
 				remainingAccounts,
 			),
 		},
-		Signers:         []types.Account{feePayer},
+		Signers:         []types.Account{accountB, feePayer},
 		FeePayer:        feePayer.PublicKey,
 		RecentBlockHash: res.Blockhash,
 	})
 
 	if err != nil {
-		t.Fatalf("generate ExecuteTransaction tx error, err: %v\n", err)
+		t.Fatalf("generate Approve tx error, err: %v\n", err)
 	}
 
 	// t.Log("rawtx base58:", base58.Encode(rawTx))
@@ -247,7 +224,7 @@ func TestMultisigTransfer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("send tx error, err: %v\n", err)
 	}
-	t.Log("ExecuteTransaction txHash:", txHash)
+	t.Log("Approve txHash:", txHash)
 
 }
 
@@ -556,12 +533,24 @@ func TestMultisigStake(t *testing.T) {
 	}
 	t.Log("Create Transaction txHash:", txHash)
 
+	remainingAccounts := []types.AccountMeta{
+		{PubKey: common.StakeProgramID, IsWritable: false, IsSigner: false},
+		{PubKey: common.MultisigProgramID, IsWritable: false, IsSigner: false},
+		{PubKey: stakeAccount.PublicKey, IsSigner: false, IsWritable: true},
+		{PubKey: validatorPubkey, IsSigner: false, IsWritable: false},
+		{PubKey: common.SysVarClockPubkey, IsSigner: false, IsWritable: false},
+		{PubKey: common.SysVarStakeHistoryPubkey, IsSigner: false, IsWritable: false},
+		{PubKey: common.StakeConfigPubkey, IsSigner: false, IsWritable: false},
+		{PubKey: multiSigner, IsSigner: false, IsWritable: false},
+	}
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
 			multisigprog.Approve(
 				multisigAccount.PublicKey,
+				multiSigner,
 				transactionAccount.PublicKey,
 				accountB.PublicKey,
+				remainingAccounts,
 			),
 		},
 		Signers:         []types.Account{accountB, feePayer},
@@ -579,52 +568,6 @@ func TestMultisigStake(t *testing.T) {
 		t.Fatalf("send tx error, err: %v\n", err)
 	}
 	t.Log("Approve txHash:", txHash)
-
-	remainingAccounts := []types.AccountMeta{
-
-		{
-			PubKey:     common.StakeProgramID,
-			IsWritable: false,
-			IsSigner:   false,
-		},
-
-		{
-			PubKey:     common.MultisigProgramID,
-			IsWritable: false,
-			IsSigner:   false,
-		},
-		{PubKey: stakeAccount.PublicKey, IsSigner: false, IsWritable: true},
-		{PubKey: validatorPubkey, IsSigner: false, IsWritable: false},
-		{PubKey: common.SysVarClockPubkey, IsSigner: false, IsWritable: false},
-		{PubKey: common.SysVarStakeHistoryPubkey, IsSigner: false, IsWritable: false},
-		{PubKey: common.StakeConfigPubkey, IsSigner: false, IsWritable: false},
-		{PubKey: multiSigner, IsSigner: false, IsWritable: false},
-	}
-
-	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
-		Instructions: []types.Instruction{
-			multisigprog.ExecuteTransaction(
-				multisigAccount.PublicKey,
-				multiSigner,
-				transactionAccount.PublicKey,
-				remainingAccounts,
-			),
-		},
-		Signers:         []types.Account{feePayer},
-		FeePayer:        feePayer.PublicKey,
-		RecentBlockHash: res.Blockhash,
-	})
-
-	if err != nil {
-		t.Fatalf("generate ExecuteTransaction tx error, err: %v\n", err)
-	}
-
-	// t.Log("rawtx base58:", base58.Encode(rawTx))
-	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
-	if err != nil {
-		t.Fatalf("send tx error, err: %v\n", err)
-	}
-	t.Log("ExecuteTransaction txHash:", txHash)
 
 }
 
@@ -823,12 +766,24 @@ func TestMultisigSplit(t *testing.T) {
 	}
 	t.Log("Create Transaction txHash:", txHash)
 
+	remainingAccounts := []types.AccountMeta{
+		{PubKey: common.StakeProgramID, IsWritable: false, IsSigner: false},
+		{PubKey: common.MultisigProgramID, IsWritable: false, IsSigner: false},
+		{PubKey: stakeAccount.PublicKey, IsSigner: false, IsWritable: true},
+		{PubKey: validatorPubkey, IsSigner: false, IsWritable: false},
+		{PubKey: common.SysVarClockPubkey, IsSigner: false, IsWritable: false},
+		{PubKey: common.SysVarStakeHistoryPubkey, IsSigner: false, IsWritable: false},
+		{PubKey: common.StakeConfigPubkey, IsSigner: false, IsWritable: false},
+		{PubKey: multiSigner, IsSigner: false, IsWritable: false},
+	}
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
 			multisigprog.Approve(
 				multisigAccount.PublicKey,
+				multiSigner,
 				transactionAccount.PublicKey,
 				accountB.PublicKey,
+				remainingAccounts,
 			),
 		},
 		Signers:         []types.Account{accountB, feePayer},
@@ -847,52 +802,7 @@ func TestMultisigSplit(t *testing.T) {
 	}
 	t.Log("Approve txHash:", txHash)
 
-	remainingAccounts := []types.AccountMeta{
-
-		{
-			PubKey:     common.StakeProgramID,
-			IsWritable: false,
-			IsSigner:   false,
-		},
-
-		{
-			PubKey:     common.MultisigProgramID,
-			IsWritable: false,
-			IsSigner:   false,
-		},
-		{PubKey: stakeAccount.PublicKey, IsSigner: false, IsWritable: true},
-		{PubKey: validatorPubkey, IsSigner: false, IsWritable: false},
-		{PubKey: common.SysVarClockPubkey, IsSigner: false, IsWritable: false},
-		{PubKey: common.SysVarStakeHistoryPubkey, IsSigner: false, IsWritable: false},
-		{PubKey: common.StakeConfigPubkey, IsSigner: false, IsWritable: false},
-		{PubKey: multiSigner, IsSigner: false, IsWritable: false},
-	}
-
-	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
-		Instructions: []types.Instruction{
-			multisigprog.ExecuteTransaction(
-				multisigAccount.PublicKey,
-				multiSigner,
-				transactionAccount.PublicKey,
-				remainingAccounts,
-			),
-		},
-		Signers:         []types.Account{feePayer},
-		FeePayer:        feePayer.PublicKey,
-		RecentBlockHash: res.Blockhash,
-	})
-
-	if err != nil {
-		t.Fatalf("generate ExecuteTransaction tx error, err: %v\n", err)
-	}
-
-	// t.Log("rawtx base58:", base58.Encode(rawTx))
-	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
-	if err != nil {
-		t.Fatalf("send tx error, err: %v\n", err)
-	}
-	t.Log("ExecuteTransaction txHash:", txHash)
-
+	
 	//================================================
 	// split operate
 
@@ -964,13 +874,21 @@ func TestMultisigSplit(t *testing.T) {
 		t.Fatalf("send tx error, err: %v\n", err)
 	}
 	t.Log("Create Transaction txHash:", txHash)
+	remainingAccounts = []types.AccountMeta{
+		{PubKey: stakeAccount.PublicKey, IsSigner: false, IsWritable: true},
+		{PubKey: splitStakeAccount.PublicKey, IsSigner: false, IsWritable: true},
+		{PubKey: multiSigner, IsSigner: false, IsWritable: false},
+		{PubKey: common.StakeProgramID, IsWritable: false, IsSigner: false},
+	}
 
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
 			multisigprog.Approve(
 				multisigAccount.PublicKey,
+				multiSigner,
 				splitTransactionAccount.PublicKey,
 				accountB.PublicKey,
+				remainingAccounts,
 			),
 		},
 		Signers:         []types.Account{accountB, feePayer},
@@ -988,44 +906,6 @@ func TestMultisigSplit(t *testing.T) {
 		t.Fatalf("send tx error, err: %v\n", err)
 	}
 	t.Log("Approve txHash:", txHash)
-
-	remainingAccounts = []types.AccountMeta{
-		{PubKey: stakeAccount.PublicKey, IsSigner: false, IsWritable: true},
-		{PubKey: splitStakeAccount.PublicKey, IsSigner: false, IsWritable: true},
-		{PubKey: multiSigner, IsSigner: false, IsWritable: false},
-		{PubKey: common.StakeProgramID, IsWritable: false, IsSigner: false},
-	}
-
-	res, err = c.GetRecentBlockhash(context.Background())
-	if err != nil {
-		t.Fatalf("get recent block hash error, err: %v\n", err)
-	}
-
-	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
-		Instructions: []types.Instruction{
-			multisigprog.ExecuteTransaction(
-				multisigAccount.PublicKey,
-				multiSigner,
-				splitTransactionAccount.PublicKey,
-				remainingAccounts,
-			),
-		},
-		Signers:         []types.Account{feePayer},
-		FeePayer:        feePayer.PublicKey,
-		RecentBlockHash: res.Blockhash,
-	})
-
-	if err != nil {
-		t.Fatalf("generate ExecuteTransaction tx error, err: %v\n", err)
-	}
-
-	t.Log("rawtx base58:", base58.Encode(rawTx))
-	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
-	if err != nil {
-		t.Fatalf("send tx error, err: %v\n", err)
-	}
-	t.Log("ExecuteTransaction txHash:", txHash)
-
 }
 
 func TestSplit(t *testing.T) {
@@ -1085,9 +965,27 @@ func splitNewToNew() {
 				feePayer.PublicKey,
 				newSplitStakeAccount.PublicKey,
 				common.StakeProgramID,
-				1000000000,
+				0,
 				200,
 			),
+		},
+		Signers:         []types.Account{feePayer, newSplitStakeAccount},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+	if err != nil {
+		log.Fatalf("generate tx error, err: %v\n", err)
+	}
+
+	txSig, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		log.Fatalf("send tx error, err: %v\n", err)
+	}
+
+	log.Println("txHash:", txSig)
+
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
 			stakeprog.Split(
 				newStakeAccount.PublicKey,
 				feePayer.PublicKey,
@@ -1095,7 +993,7 @@ func splitNewToNew() {
 				1e8,
 			),
 		},
-		Signers:         []types.Account{feePayer, newSplitStakeAccount},
+		Signers:         []types.Account{feePayer},
 		FeePayer:        feePayer.PublicKey,
 		RecentBlockHash: res.Blockhash,
 	})
