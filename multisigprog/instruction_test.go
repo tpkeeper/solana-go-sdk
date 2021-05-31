@@ -4,17 +4,19 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"testing"
 
 	"github.com/mr-tron/base58"
 	"github.com/tpkeeper/solana-go-sdk/client"
 	"github.com/tpkeeper/solana-go-sdk/common"
 	"github.com/tpkeeper/solana-go-sdk/multisigprog"
+	"github.com/tpkeeper/solana-go-sdk/stakeprog"
 	"github.com/tpkeeper/solana-go-sdk/sysprog"
 	"github.com/tpkeeper/solana-go-sdk/types"
 )
 
-func TestMultisig(t *testing.T) {
+func TestMultisigTransfer(t *testing.T) {
 	c := client.NewClient(client.DevnetRPCEndpoint)
 
 	res, err := c.GetRecentBlockhash(context.Background())
@@ -361,4 +363,750 @@ func TestGetTx(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(fmt.Sprintf("%+v", tx.Transaction.Message))
+}
+
+func TestMultisigStake(t *testing.T) {
+	c := client.NewClient(client.DevnetRPCEndpoint)
+
+	res, err := c.GetRecentBlockhash(context.Background())
+	if err != nil {
+		t.Fatalf("get recent block hash error, err: %v\n", err)
+	}
+	feePayer := types.AccountFromPrivateKeyBytes([]byte{179, 95, 213, 234, 125, 167, 246, 188, 230, 134, 181, 219, 31, 146, 239, 75, 190, 124, 112, 93, 187, 140, 178, 119, 90, 153, 207, 178, 137, 5, 53, 71, 116, 28, 190, 12, 249, 238, 110, 135, 109, 21, 196, 36, 191, 19, 236, 175, 229, 204, 68, 180, 130, 102, 71, 239, 41, 53, 152, 159, 175, 124, 180, 6})
+
+	_, err = c.RequestAirdrop(context.Background(), feePayer.PublicKey.ToBase58(), 10e9)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	multisigAccount := types.NewAccount()
+	transactionAccount := types.NewAccount()
+	stakeAccount := types.NewAccount()
+	accountA := types.NewAccount()
+	accountB := types.NewAccount()
+	accountC := types.NewAccount()
+	multiSigner, nonce, err := common.FindProgramAddress([][]byte{multisigAccount.PublicKey.Bytes()}, common.MultisigProgramID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	owners := []common.PublicKey{accountA.PublicKey, accountB.PublicKey, accountC.PublicKey}
+
+	rawTx, err := types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			sysprog.CreateAccount(
+				feePayer.PublicKey,
+				stakeAccount.PublicKey,
+				common.StakeProgramID,
+				2000000000,
+				200,
+			),
+			stakeprog.Initialize(
+				stakeAccount.PublicKey,
+				stakeprog.Authorized{
+					Staker:     multiSigner,
+					Withdrawer: multiSigner,
+				},
+				stakeprog.Lockup{},
+			),
+		},
+		Signers:         []types.Account{feePayer, stakeAccount},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+	if err != nil {
+		t.Fatalf("generate tx error, err: %v\n", err)
+	}
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
+	txHash, err := c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("createStakeAccount txHash:", txHash)
+
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			sysprog.CreateAccount(
+				feePayer.PublicKey,
+				multisigAccount.PublicKey,
+				common.MultisigProgramID,
+				1000000000,
+				200,
+			),
+			multisigprog.CreateMultisig(
+				multisigAccount.PublicKey,
+				owners,
+				2,
+				uint8(nonce),
+			),
+		},
+		Signers:         []types.Account{feePayer, multisigAccount},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+	if err != nil {
+		t.Fatalf("generate tx error, err: %v\n", err)
+	}
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("createMultisig txHash:", txHash)
+
+	t.Log("feePayer:", feePayer.PublicKey.ToBase58())
+	t.Log("multisig account:", multisigAccount.PublicKey.ToBase58())
+	t.Log("transaction account:", transactionAccount.PublicKey.ToBase58())
+	t.Log("multiSigner:", multiSigner.ToBase58())
+	t.Log("stakeAccount", stakeAccount.PublicKey.ToBase58())
+	t.Log("accountA", accountA.PublicKey.ToBase58())
+	t.Log("accountB", accountB.PublicKey.ToBase58())
+	t.Log("accountC", accountC.PublicKey.ToBase58())
+
+	//send 2 sol to account multisigner
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			sysprog.Transfer(
+				feePayer.PublicKey,
+				multiSigner,
+				2000000000,
+			),
+		},
+		Signers:         []types.Account{feePayer},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+	if err != nil {
+		t.Fatalf("generate tx error, err: %v\n", err)
+	}
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("send sol to multisigner txHash:", txHash)
+
+	res, err = c.GetRecentBlockhash(context.Background())
+	if err != nil {
+		t.Fatalf("get recent block hash error, err: %v\n", err)
+	}
+
+	validatorPubkey := common.PublicKeyFromString("5MMCR4NbTZqjthjLGywmeT66iwE9J9f7kjtxzJjwfUx2")
+	stakeInstruction := stakeprog.DelegateStake(stakeAccount.PublicKey, multiSigner, validatorPubkey)
+	txUsedAccounts := []multisigprog.TransactionUsedAccount{
+		{Pubkey: stakeAccount.PublicKey, IsSigner: false, IsWritable: true},
+		{Pubkey: validatorPubkey, IsSigner: false, IsWritable: false},
+		{Pubkey: common.SysVarClockPubkey, IsSigner: false, IsWritable: false},
+		{Pubkey: common.SysVarStakeHistoryPubkey, IsSigner: false, IsWritable: false},
+		{Pubkey: common.StakeConfigPubkey, IsSigner: false, IsWritable: false},
+		{Pubkey: multiSigner, IsSigner: true, IsWritable: false},
+	}
+
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			sysprog.CreateAccount(
+				feePayer.PublicKey,
+				transactionAccount.PublicKey,
+				common.MultisigProgramID,
+				1000000000,
+				1000,
+			),
+		},
+		Signers:         []types.Account{feePayer, transactionAccount},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+	if err != nil {
+		t.Fatalf("generate create account tx error, err: %v\n", err)
+	}
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("create transaction account hash ", txHash)
+
+	res, err = c.GetRecentBlockhash(context.Background())
+	if err != nil {
+		t.Fatalf("get recent block hash error, err: %v\n", err)
+	}
+
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			multisigprog.CreateTransaction(
+				common.StakeProgramID,
+				txUsedAccounts,
+				stakeInstruction.Data,
+				multisigAccount.PublicKey,
+				transactionAccount.PublicKey,
+				accountA.PublicKey,
+			),
+		},
+		Signers:         []types.Account{accountA, feePayer},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+
+	if err != nil {
+		t.Fatalf("generate createTransaction tx error, err: %v\n", err)
+	}
+
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("Create Transaction txHash:", txHash)
+
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			multisigprog.Approve(
+				multisigAccount.PublicKey,
+				transactionAccount.PublicKey,
+				accountB.PublicKey,
+			),
+		},
+		Signers:         []types.Account{accountB, feePayer},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+
+	if err != nil {
+		t.Fatalf("generate Approve tx error, err: %v\n", err)
+	}
+
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("Approve txHash:", txHash)
+
+	remainingAccounts := []types.AccountMeta{
+
+		{
+			PubKey:     common.StakeProgramID,
+			IsWritable: false,
+			IsSigner:   false,
+		},
+
+		{
+			PubKey:     common.MultisigProgramID,
+			IsWritable: false,
+			IsSigner:   false,
+		},
+		{PubKey: stakeAccount.PublicKey, IsSigner: false, IsWritable: true},
+		{PubKey: validatorPubkey, IsSigner: false, IsWritable: false},
+		{PubKey: common.SysVarClockPubkey, IsSigner: false, IsWritable: false},
+		{PubKey: common.SysVarStakeHistoryPubkey, IsSigner: false, IsWritable: false},
+		{PubKey: common.StakeConfigPubkey, IsSigner: false, IsWritable: false},
+		{PubKey: multiSigner, IsSigner: false, IsWritable: false},
+	}
+
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			multisigprog.ExecuteTransaction(
+				multisigAccount.PublicKey,
+				multiSigner,
+				transactionAccount.PublicKey,
+				remainingAccounts,
+			),
+		},
+		Signers:         []types.Account{feePayer},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+
+	if err != nil {
+		t.Fatalf("generate ExecuteTransaction tx error, err: %v\n", err)
+	}
+
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("ExecuteTransaction txHash:", txHash)
+
+}
+
+func TestMultisigSplit(t *testing.T) {
+	c := client.NewClient(client.DevnetRPCEndpoint)
+
+	res, err := c.GetRecentBlockhash(context.Background())
+	if err != nil {
+		t.Fatalf("get recent block hash error, err: %v\n", err)
+	}
+	feePayer := types.AccountFromPrivateKeyBytes([]byte{179, 95, 213, 234, 125, 167, 246, 188, 230, 134, 181, 219, 31, 146, 239, 75, 190, 124, 112, 93, 187, 140, 178, 119, 90, 153, 207, 178, 137, 5, 53, 71, 116, 28, 190, 12, 249, 238, 110, 135, 109, 21, 196, 36, 191, 19, 236, 175, 229, 204, 68, 180, 130, 102, 71, 239, 41, 53, 152, 159, 175, 124, 180, 6})
+
+	_, err = c.RequestAirdrop(context.Background(), feePayer.PublicKey.ToBase58(), 10e9)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	multisigAccount := types.NewAccount()
+	transactionAccount := types.NewAccount()
+	splitTransactionAccount := types.NewAccount()
+	stakeAccount := types.NewAccount()
+	splitStakeAccount := types.NewAccount()
+	accountA := types.NewAccount()
+	accountB := types.NewAccount()
+	accountC := types.NewAccount()
+	multiSigner, nonce, err := common.FindProgramAddress([][]byte{multisigAccount.PublicKey.Bytes()}, common.MultisigProgramID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	owners := []common.PublicKey{accountA.PublicKey, accountB.PublicKey, accountC.PublicKey}
+
+	rawTx, err := types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			sysprog.CreateAccount(
+				feePayer.PublicKey,
+				stakeAccount.PublicKey,
+				common.StakeProgramID,
+				2000000000,
+				200,
+			),
+			stakeprog.Initialize(
+				stakeAccount.PublicKey,
+				stakeprog.Authorized{
+					Staker:     multiSigner,
+					Withdrawer: multiSigner,
+				},
+				stakeprog.Lockup{},
+			),
+		},
+		Signers:         []types.Account{feePayer, stakeAccount},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+	if err != nil {
+		t.Fatalf("generate tx error, err: %v\n", err)
+	}
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
+	txHash, err := c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("createStakeAccount txHash:", txHash)
+
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			sysprog.CreateAccount(
+				feePayer.PublicKey,
+				multisigAccount.PublicKey,
+				common.MultisigProgramID,
+				1000000000,
+				200,
+			),
+			multisigprog.CreateMultisig(
+				multisigAccount.PublicKey,
+				owners,
+				2,
+				uint8(nonce),
+			),
+		},
+		Signers:         []types.Account{feePayer, multisigAccount},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+	if err != nil {
+		t.Fatalf("generate tx error, err: %v\n", err)
+	}
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("createMultisig txHash:", txHash)
+
+	t.Log("feePayer:", feePayer.PublicKey.ToBase58())
+	t.Log("multisig account:", multisigAccount.PublicKey.ToBase58())
+	t.Log("transaction account:", transactionAccount.PublicKey.ToBase58())
+	t.Log("splitTransaction account:", splitTransactionAccount.PublicKey.ToBase58())
+	t.Log("multiSigner:", multiSigner.ToBase58())
+	t.Log("stakeAccount", stakeAccount.PublicKey.ToBase58())
+	t.Log("splitStakeAccount", splitStakeAccount.PublicKey.ToBase58())
+	t.Log("accountA", accountA.PublicKey.ToBase58())
+	t.Log("accountB", accountB.PublicKey.ToBase58())
+	t.Log("accountC", accountC.PublicKey.ToBase58())
+
+	//send 2 sol to account multisigner
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			sysprog.Transfer(
+				feePayer.PublicKey,
+				multiSigner,
+				2000000000,
+			),
+		},
+		Signers:         []types.Account{feePayer},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+	if err != nil {
+		t.Fatalf("generate tx error, err: %v\n", err)
+	}
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("send sol to multisigner txHash:", txHash)
+
+	res, err = c.GetRecentBlockhash(context.Background())
+	if err != nil {
+		t.Fatalf("get recent block hash error, err: %v\n", err)
+	}
+
+	validatorPubkey := common.PublicKeyFromString("5MMCR4NbTZqjthjLGywmeT66iwE9J9f7kjtxzJjwfUx2")
+	stakeInstruction := stakeprog.DelegateStake(stakeAccount.PublicKey, multiSigner, validatorPubkey)
+	txUsedAccounts := []multisigprog.TransactionUsedAccount{
+		{Pubkey: stakeAccount.PublicKey, IsSigner: false, IsWritable: true},
+		{Pubkey: validatorPubkey, IsSigner: false, IsWritable: false},
+		{Pubkey: common.SysVarClockPubkey, IsSigner: false, IsWritable: false},
+		{Pubkey: common.SysVarStakeHistoryPubkey, IsSigner: false, IsWritable: false},
+		{Pubkey: common.StakeConfigPubkey, IsSigner: false, IsWritable: false},
+		{Pubkey: multiSigner, IsSigner: true, IsWritable: false},
+	}
+
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			sysprog.CreateAccount(
+				feePayer.PublicKey,
+				transactionAccount.PublicKey,
+				common.MultisigProgramID,
+				1000000000,
+				1000,
+			),
+		},
+		Signers:         []types.Account{feePayer, transactionAccount},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+	if err != nil {
+		t.Fatalf("generate create account tx error, err: %v\n", err)
+	}
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("create transaction account hash ", txHash)
+
+	res, err = c.GetRecentBlockhash(context.Background())
+	if err != nil {
+		t.Fatalf("get recent block hash error, err: %v\n", err)
+	}
+
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			multisigprog.CreateTransaction(
+				common.StakeProgramID,
+				txUsedAccounts,
+				stakeInstruction.Data,
+				multisigAccount.PublicKey,
+				transactionAccount.PublicKey,
+				accountA.PublicKey,
+			),
+		},
+		Signers:         []types.Account{accountA, feePayer},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+
+	if err != nil {
+		t.Fatalf("generate createTransaction tx error, err: %v\n", err)
+	}
+
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("Create Transaction txHash:", txHash)
+
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			multisigprog.Approve(
+				multisigAccount.PublicKey,
+				transactionAccount.PublicKey,
+				accountB.PublicKey,
+			),
+		},
+		Signers:         []types.Account{accountB, feePayer},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+
+	if err != nil {
+		t.Fatalf("generate Approve tx error, err: %v\n", err)
+	}
+
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("Approve txHash:", txHash)
+
+	remainingAccounts := []types.AccountMeta{
+
+		{
+			PubKey:     common.StakeProgramID,
+			IsWritable: false,
+			IsSigner:   false,
+		},
+
+		{
+			PubKey:     common.MultisigProgramID,
+			IsWritable: false,
+			IsSigner:   false,
+		},
+		{PubKey: stakeAccount.PublicKey, IsSigner: false, IsWritable: true},
+		{PubKey: validatorPubkey, IsSigner: false, IsWritable: false},
+		{PubKey: common.SysVarClockPubkey, IsSigner: false, IsWritable: false},
+		{PubKey: common.SysVarStakeHistoryPubkey, IsSigner: false, IsWritable: false},
+		{PubKey: common.StakeConfigPubkey, IsSigner: false, IsWritable: false},
+		{PubKey: multiSigner, IsSigner: false, IsWritable: false},
+	}
+
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			multisigprog.ExecuteTransaction(
+				multisigAccount.PublicKey,
+				multiSigner,
+				transactionAccount.PublicKey,
+				remainingAccounts,
+			),
+		},
+		Signers:         []types.Account{feePayer},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+
+	if err != nil {
+		t.Fatalf("generate ExecuteTransaction tx error, err: %v\n", err)
+	}
+
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("ExecuteTransaction txHash:", txHash)
+
+	//================================================
+	// split operate
+
+	splitInstruction := stakeprog.Split(stakeAccount.PublicKey, multiSigner, splitStakeAccount.PublicKey, 1e8)
+	txUsedAccounts = []multisigprog.TransactionUsedAccount{
+		{Pubkey: stakeAccount.PublicKey, IsSigner: false, IsWritable: true},
+		{Pubkey: splitStakeAccount.PublicKey, IsSigner: false, IsWritable: true},
+		{Pubkey: multiSigner, IsSigner: true, IsWritable: false},
+	}
+
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			sysprog.CreateAccount(
+				feePayer.PublicKey,
+				splitTransactionAccount.PublicKey,
+				common.MultisigProgramID,
+				1000000000,
+				1000,
+			),
+			sysprog.CreateAccount(
+				feePayer.PublicKey,
+				splitStakeAccount.PublicKey,
+				common.StakeProgramID,
+				1000000000,
+				200,
+			),
+		},
+		Signers:         []types.Account{feePayer, splitTransactionAccount, splitStakeAccount},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+	if err != nil {
+		t.Fatalf("generate create account tx error, err: %v\n", err)
+	}
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("create transaction account hash ", txHash)
+
+	res, err = c.GetRecentBlockhash(context.Background())
+	if err != nil {
+		t.Fatalf("get recent block hash error, err: %v\n", err)
+	}
+
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			multisigprog.CreateTransaction(
+				common.StakeProgramID,
+				txUsedAccounts,
+				splitInstruction.Data,
+				multisigAccount.PublicKey,
+				splitTransactionAccount.PublicKey,
+				accountA.PublicKey,
+			),
+		},
+		Signers:         []types.Account{accountA, feePayer},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+
+	if err != nil {
+		t.Fatalf("generate createTransaction tx error, err: %v\n", err)
+	}
+
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("Create Transaction txHash:", txHash)
+
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			multisigprog.Approve(
+				multisigAccount.PublicKey,
+				splitTransactionAccount.PublicKey,
+				accountB.PublicKey,
+			),
+		},
+		Signers:         []types.Account{accountB, feePayer},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+
+	if err != nil {
+		t.Fatalf("generate Approve tx error, err: %v\n", err)
+	}
+
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("Approve txHash:", txHash)
+
+	remainingAccounts = []types.AccountMeta{
+		{PubKey: stakeAccount.PublicKey, IsSigner: false, IsWritable: true},
+		{PubKey: splitStakeAccount.PublicKey, IsSigner: false, IsWritable: true},
+		{PubKey: multiSigner, IsSigner: false, IsWritable: false},
+		{PubKey: common.StakeProgramID, IsWritable: false, IsSigner: false},
+	}
+
+	res, err = c.GetRecentBlockhash(context.Background())
+	if err != nil {
+		t.Fatalf("get recent block hash error, err: %v\n", err)
+	}
+
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			multisigprog.ExecuteTransaction(
+				multisigAccount.PublicKey,
+				multiSigner,
+				splitTransactionAccount.PublicKey,
+				remainingAccounts,
+			),
+		},
+		Signers:         []types.Account{feePayer},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+
+	if err != nil {
+		t.Fatalf("generate ExecuteTransaction tx error, err: %v\n", err)
+	}
+
+	t.Log("rawtx base58:", base58.Encode(rawTx))
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("ExecuteTransaction txHash:", txHash)
+
+}
+
+func TestSplit(t *testing.T) {
+	splitNewToNew()
+}
+
+func splitNewToNew() {
+	c := client.NewClient(client.DevnetRPCEndpoint)
+
+	res, err := c.GetRecentBlockhash(context.Background())
+	if err != nil {
+		log.Fatalf("get recent block hash error, err: %v\n", err)
+	}
+	feePayer := types.AccountFromPrivateKeyBytes([]byte{179, 95, 213, 234, 125, 167, 246, 188, 230, 134, 181, 219, 31, 146, 239, 75, 190, 124, 112, 93, 187, 140, 178, 119, 90, 153, 207, 178, 137, 5, 53, 71, 116, 28, 190, 12, 249, 238, 110, 135, 109, 21, 196, 36, 191, 19, 236, 175, 229, 204, 68, 180, 130, 102, 71, 239, 41, 53, 152, 159, 175, 124, 180, 6})
+
+	c.RequestAirdrop(context.Background(), feePayer.PublicKey.ToBase58(), 10e9)
+
+	newStakeAccount := types.NewAccount()
+	newSplitStakeAccount := types.NewAccount()
+
+	rawTx, err := types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			sysprog.CreateAccount(
+				feePayer.PublicKey,
+				newStakeAccount.PublicKey,
+				common.StakeProgramID,
+				2000000000,
+				200,
+			),
+			stakeprog.Initialize(
+				newStakeAccount.PublicKey,
+				stakeprog.Authorized{
+					Staker:     feePayer.PublicKey,
+					Withdrawer: feePayer.PublicKey,
+				},
+				stakeprog.Lockup{},
+			),
+		},
+		Signers:         []types.Account{feePayer, newStakeAccount},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+	if err != nil {
+		log.Fatalf("generate tx error, err: %v\n", err)
+	}
+
+	txSig, err := c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		log.Fatalf("send tx error, err: %v\n", err)
+	}
+
+	log.Println("txHash:", txSig)
+
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			sysprog.CreateAccount(
+				feePayer.PublicKey,
+				newSplitStakeAccount.PublicKey,
+				common.StakeProgramID,
+				1000000000,
+				200,
+			),
+			stakeprog.Split(
+				newStakeAccount.PublicKey,
+				feePayer.PublicKey,
+				newSplitStakeAccount.PublicKey,
+				1e8,
+			),
+		},
+		Signers:         []types.Account{feePayer, newSplitStakeAccount},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+	if err != nil {
+		log.Fatalf("generate tx error, err: %v\n", err)
+	}
+
+	txSig, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		log.Fatalf("send tx error, err: %v\n", err)
+	}
+
+	log.Println("txHash:", txSig)
 }
