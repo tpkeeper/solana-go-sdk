@@ -16,18 +16,18 @@ import (
 	"github.com/tpkeeper/solana-go-sdk/types"
 )
 
-func TestMultisigTransfer(t *testing.T) {
+func ExampleMultisigTransfer() {
 	c := client.NewClient(client.DevnetRPCEndpoint)
 
 	res, err := c.GetRecentBlockhash(context.Background())
 	if err != nil {
-		t.Fatalf("get recent block hash error, err: %v\n", err)
+		fmt.Printf("get recent block hash error, err: %v\n", err)
 	}
 	feePayer := types.AccountFromPrivateKeyBytes([]byte{179, 95, 213, 234, 125, 167, 246, 188, 230, 134, 181, 219, 31, 146, 239, 75, 190, 124, 112, 93, 187, 140, 178, 119, 90, 153, 207, 178, 137, 5, 53, 71, 116, 28, 190, 12, 249, 238, 110, 135, 109, 21, 196, 36, 191, 19, 236, 175, 229, 204, 68, 180, 130, 102, 71, 239, 41, 53, 152, 159, 175, 124, 180, 6})
 
 	_, err = c.RequestAirdrop(context.Background(), feePayer.PublicKey.ToBase58(), 10e9)
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 
 	multisigAccount := types.NewAccount()
@@ -37,7 +37,7 @@ func TestMultisigTransfer(t *testing.T) {
 	accountC := types.NewAccount()
 	multiSigner, nonce, err := common.FindProgramAddress([][]byte{multisigAccount.PublicKey.Bytes()}, common.MultisigProgramID)
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 	owners := []common.PublicKey{accountA.PublicKey, accountB.PublicKey, accountC.PublicKey}
 
@@ -62,22 +62,22 @@ func TestMultisigTransfer(t *testing.T) {
 		RecentBlockHash: res.Blockhash,
 	})
 	if err != nil {
-		t.Fatalf("generate tx error, err: %v\n", err)
+		fmt.Printf("generate tx error, err: %v\n", err)
 	}
 	// t.Log("rawtx base58:", base58.Encode(rawTx))
 	txHash, err := c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
-		t.Fatalf("send tx error, err: %v\n", err)
+		fmt.Printf("send tx error, err: %v\n", err)
 	}
 
-	t.Log("createMultisig txHash:", txHash)
-	t.Log("feePayer:", feePayer.PublicKey.ToBase58())
-	t.Log("multisig account:", multisigAccount.PublicKey.ToBase58())
-	t.Log("transaction account:", transactionAccount.PublicKey.ToBase58())
-	t.Log("multiSigner:", multiSigner.ToBase58())
-	t.Log("accountA", accountA.PublicKey.ToBase58())
-	t.Log("accountB", accountB.PublicKey.ToBase58())
-	t.Log("accountC", accountC.PublicKey.ToBase58())
+	fmt.Println("createMultisig txHash:", txHash)
+	fmt.Println("feePayer:", feePayer.PublicKey.ToBase58())
+	fmt.Println("multisig account:", multisigAccount.PublicKey.ToBase58())
+	fmt.Println("transaction account:", transactionAccount.PublicKey.ToBase58())
+	fmt.Println("multiSigner:", multiSigner.ToBase58())
+	fmt.Println("accountA", accountA.PublicKey.ToBase58())
+	fmt.Println("accountB", accountB.PublicKey.ToBase58())
+	fmt.Println("accountC", accountC.PublicKey.ToBase58())
 
 	//send 2 sol to account multisigner
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
@@ -93,17 +93,17 @@ func TestMultisigTransfer(t *testing.T) {
 		RecentBlockHash: res.Blockhash,
 	})
 	if err != nil {
-		t.Fatalf("generate tx error, err: %v\n", err)
+		fmt.Printf("generate tx error, err: %v\n", err)
 	}
 	// t.Log("rawtx base58:", base58.Encode(rawTx))
 	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
-		t.Fatalf("send tx error, err: %v\n", err)
+		fmt.Printf("send tx error, err: %v\n", err)
 	}
 
 	res, err = c.GetRecentBlockhash(context.Background())
 	if err != nil {
-		t.Fatalf("get recent block hash error, err: %v\n", err)
+		fmt.Printf("get recent block hash error, err: %v\n", err)
 	}
 
 	txUsedAccounts := []multisigprog.TransactionUsedAccount{
@@ -136,17 +136,17 @@ func TestMultisigTransfer(t *testing.T) {
 		RecentBlockHash: res.Blockhash,
 	})
 	if err != nil {
-		t.Fatalf("generate create account tx error, err: %v\n", err)
+		fmt.Printf("generate create account tx error, err: %v\n", err)
 	}
 	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
-		t.Fatalf("send tx error, err: %v\n", err)
+		fmt.Printf("send tx error, err: %v\n", err)
 	}
-	t.Log("create transaction account hash ", txHash)
+	fmt.Println("create transaction account hash ", txHash)
 
 	res, err = c.GetRecentBlockhash(context.Background())
 	if err != nil {
-		t.Fatalf("get recent block hash error, err: %v\n", err)
+		fmt.Printf("get recent block hash error, err: %v\n", err)
 	}
 
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
@@ -166,15 +166,15 @@ func TestMultisigTransfer(t *testing.T) {
 	})
 
 	if err != nil {
-		t.Fatalf("generate createTransaction tx error, err: %v\n", err)
+		fmt.Printf("generate createTransaction tx error, err: %v\n", err)
 	}
 
 	// t.Log("rawtx base58:", base58.Encode(rawTx))
 	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
-		t.Fatalf("send tx error, err: %v\n", err)
+		fmt.Printf("send tx error, err: %v\n", err)
 	}
-	t.Log("Create Transaction txHash:", txHash)
+	fmt.Println("Create Transaction txHash:", txHash)
 
 	remainingAccounts := []types.AccountMeta{
 		{
@@ -216,15 +216,15 @@ func TestMultisigTransfer(t *testing.T) {
 	})
 
 	if err != nil {
-		t.Fatalf("generate Approve tx error, err: %v\n", err)
+		fmt.Printf("generate Approve tx error, err: %v\n", err)
 	}
 
 	// t.Log("rawtx base58:", base58.Encode(rawTx))
 	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
-		t.Fatalf("send tx error, err: %v\n", err)
+		fmt.Printf("send tx error, err: %v\n", err)
 	}
-	t.Log("Approve txHash:", txHash)
+	fmt.Println("Approve txHash:", txHash)
 
 }
 
@@ -342,7 +342,7 @@ func TestGetTx(t *testing.T) {
 	t.Log(fmt.Sprintf("%+v", tx.Transaction.Message))
 }
 
-func TestMultisigStake(t *testing.T) {
+func ExampleMultisigStake(t *testing.T) {
 	c := client.NewClient(client.DevnetRPCEndpoint)
 
 	res, err := c.GetRecentBlockhash(context.Background())
@@ -571,7 +571,7 @@ func TestMultisigStake(t *testing.T) {
 
 }
 
-func TestMultisigSplit(t *testing.T) {
+func ExampleMultisigSplit(t *testing.T) {
 	c := client.NewClient(client.DevnetRPCEndpoint)
 
 	res, err := c.GetRecentBlockhash(context.Background())
@@ -907,7 +907,7 @@ func TestMultisigSplit(t *testing.T) {
 	t.Log("Approve txHash:", txHash)
 }
 
-func TestSplit(t *testing.T) {
+func ExampleSplit(t *testing.T) {
 	splitNewToNew()
 }
 
