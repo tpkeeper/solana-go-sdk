@@ -345,7 +345,7 @@ func TestGetTx(t *testing.T) {
 	t.Log(fmt.Sprintf("%+v", tx.Transaction.Message))
 }
 
-func ExampleMultisigStake(t *testing.T) {
+func TestMultisigStake(t *testing.T) {
 	c := client.NewClient(client.DevnetRPCEndpoint)
 
 	res, err := c.GetRecentBlockhash(context.Background())
@@ -360,8 +360,14 @@ func ExampleMultisigStake(t *testing.T) {
 	}
 
 	multisigAccount := types.NewAccount()
-	transactionAccount := types.NewAccount()
-	stakeAccount := types.NewAccount()
+	multisigBaseAccount := types.NewAccount()
+	txSeed := "multisig:stake:196:0"
+	transactionAccount := common.CreateWithSeed(multisigBaseAccount.PublicKey, txSeed, common.MultisigProgramID)
+
+	stakeBaseAccount := types.NewAccount()
+	stakeAccountSeed := "stake:196:0"
+	stakeAccount := common.CreateWithSeed(stakeBaseAccount.PublicKey, stakeAccountSeed, common.StakeProgramID)
+
 	accountA := types.NewAccount()
 	accountB := types.NewAccount()
 	accountC := types.NewAccount()
@@ -371,39 +377,18 @@ func ExampleMultisigStake(t *testing.T) {
 	}
 	owners := []common.PublicKey{accountA.PublicKey, accountB.PublicKey, accountC.PublicKey}
 
-	rawTx, err := types.CreateRawTransaction(types.CreateRawTransactionParam{
-		Instructions: []types.Instruction{
-			sysprog.CreateAccount(
-				feePayer.PublicKey,
-				stakeAccount.PublicKey,
-				common.StakeProgramID,
-				2000000000,
-				200,
-			),
-			stakeprog.Initialize(
-				stakeAccount.PublicKey,
-				stakeprog.Authorized{
-					Staker:     multiSigner,
-					Withdrawer: multiSigner,
-				},
-				stakeprog.Lockup{},
-			),
-		},
-		Signers:         []types.Account{feePayer, stakeAccount},
-		FeePayer:        feePayer.PublicKey,
-		RecentBlockHash: res.Blockhash,
-	})
+	miniMumBalance200, err := c.GetMinimumBalanceForRentExemption(context.Background(), 200)
 	if err != nil {
-		t.Fatalf("generate tx error, err: %v\n", err)
+		t.Fatal(err)
 	}
-	// t.Log("rawtx base58:", base58.Encode(rawTx))
-	txHash, err := c.SendRawTransaction(context.Background(), rawTx)
+	t.Log(miniMumBalance200)
+	miniMumBalance1000, err := c.GetMinimumBalanceForRentExemption(context.Background(), 1000)
 	if err != nil {
-		t.Fatalf("send tx error, err: %v\n", err)
+		t.Fatal(err)
 	}
-	t.Log("createStakeAccount txHash:", txHash)
 
-	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+	//create multisig account
+	rawTx, err := types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
 			sysprog.CreateAccount(
 				feePayer.PublicKey,
@@ -427,7 +412,7 @@ func ExampleMultisigStake(t *testing.T) {
 		t.Fatalf("generate tx error, err: %v\n", err)
 	}
 	// t.Log("rawtx base58:", base58.Encode(rawTx))
-	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	txHash, err := c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
 		t.Fatalf("send tx error, err: %v\n", err)
 	}
@@ -435,20 +420,23 @@ func ExampleMultisigStake(t *testing.T) {
 
 	t.Log("feePayer:", feePayer.PublicKey.ToBase58())
 	t.Log("multisig account:", multisigAccount.PublicKey.ToBase58())
-	t.Log("transaction account:", transactionAccount.PublicKey.ToBase58())
+	t.Log("transaction account:", transactionAccount.ToBase58())
 	t.Log("multiSigner:", multiSigner.ToBase58())
-	t.Log("stakeAccount", stakeAccount.PublicKey.ToBase58())
+	t.Log("stakeBaseAccount", stakeBaseAccount.PublicKey.ToBase58())
+	t.Log("multisigBaseAccount", multisigBaseAccount.PublicKey.ToBase58())
+	t.Log("stakeAccount", stakeAccount.ToBase58())
 	t.Log("accountA", accountA.PublicKey.ToBase58())
 	t.Log("accountB", accountB.PublicKey.ToBase58())
 	t.Log("accountC", accountC.PublicKey.ToBase58())
 
-	//send 2 sol to account multisigner
+	//send from user
+	//send 3 sol to account multisigner
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
 			sysprog.Transfer(
 				feePayer.PublicKey,
 				multiSigner,
-				2000000000,
+				3000000000,
 			),
 		},
 		Signers:         []types.Account{feePayer},
@@ -470,10 +458,52 @@ func ExampleMultisigStake(t *testing.T) {
 		t.Fatalf("get recent block hash error, err: %v\n", err)
 	}
 
+	//send from one of relayers
+	//create new stake acount of this era
+	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			sysprog.CreateAccountWithSeed(
+				feePayer.PublicKey,
+				stakeAccount,
+				stakeBaseAccount.PublicKey,
+				common.StakeProgramID,
+				stakeAccountSeed,
+				2000000000,
+				200,
+			),
+			stakeprog.Initialize(
+				stakeAccount,
+				stakeprog.Authorized{
+					Staker:     multiSigner,
+					Withdrawer: multiSigner,
+				},
+				stakeprog.Lockup{},
+			),
+		},
+		Signers:         []types.Account{feePayer, stakeBaseAccount},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+	if err != nil {
+		t.Fatalf("generate create stake account tx error, err: %v\n", err)
+	}
+	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		t.Fatalf("send tx error, err: %v\n", err)
+	}
+	t.Log("create stake account hash ", txHash)
+
+	res, err = c.GetRecentBlockhash(context.Background())
+	if err != nil {
+		t.Fatalf("get recent block hash error, err: %v\n", err)
+	}
+
+	//send from one of relayers
+	//create transaction account of this era
 	validatorPubkey := common.PublicKeyFromString("5MMCR4NbTZqjthjLGywmeT66iwE9J9f7kjtxzJjwfUx2")
-	stakeInstruction := stakeprog.DelegateStake(stakeAccount.PublicKey, multiSigner, validatorPubkey)
+	stakeInstruction := stakeprog.DelegateStake(stakeAccount, multiSigner, validatorPubkey)
 	txUsedAccounts := []multisigprog.TransactionUsedAccount{
-		{Pubkey: stakeAccount.PublicKey, IsSigner: false, IsWritable: true},
+		{Pubkey: stakeAccount, IsSigner: false, IsWritable: true},
 		{Pubkey: validatorPubkey, IsSigner: false, IsWritable: false},
 		{Pubkey: common.SysVarClockPubkey, IsSigner: false, IsWritable: false},
 		{Pubkey: common.SysVarStakeHistoryPubkey, IsSigner: false, IsWritable: false},
@@ -481,46 +511,34 @@ func ExampleMultisigStake(t *testing.T) {
 		{Pubkey: multiSigner, IsSigner: true, IsWritable: false},
 	}
 
+	transferTxUsedAccounts := []multisigprog.TransactionUsedAccount{
+		{Pubkey: multiSigner, IsSigner: true, IsWritable: true},
+		{Pubkey: stakeAccount, IsSigner: false, IsWritable: true},
+	}
+
+	transferInstruct := sysprog.Transfer(multiSigner, stakeAccount, 2000000000)
+
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
-			sysprog.CreateAccount(
+			sysprog.CreateAccountWithSeed(
 				feePayer.PublicKey,
-				transactionAccount.PublicKey,
+				transactionAccount,
+				multisigBaseAccount.PublicKey,
 				common.MultisigProgramID,
-				1000000000,
+				txSeed,
+				miniMumBalance1000,
 				1000,
 			),
-		},
-		Signers:         []types.Account{feePayer, transactionAccount},
-		FeePayer:        feePayer.PublicKey,
-		RecentBlockHash: res.Blockhash,
-	})
-	if err != nil {
-		t.Fatalf("generate create account tx error, err: %v\n", err)
-	}
-	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
-	if err != nil {
-		t.Fatalf("send tx error, err: %v\n", err)
-	}
-	t.Log("create transaction account hash ", txHash)
-
-	res, err = c.GetRecentBlockhash(context.Background())
-	if err != nil {
-		t.Fatalf("get recent block hash error, err: %v\n", err)
-	}
-
-	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
-		Instructions: []types.Instruction{
 			multisigprog.CreateTransaction(
-				[]common.PublicKey{common.StakeProgramID},
-				[][]multisigprog.TransactionUsedAccount{txUsedAccounts},
-				[][]byte{stakeInstruction.Data},
+				[]common.PublicKey{common.SystemProgramID, common.StakeProgramID},
+				[][]multisigprog.TransactionUsedAccount{transferTxUsedAccounts, txUsedAccounts},
+				[][]byte{transferInstruct.Data, stakeInstruction.Data},
 				multisigAccount.PublicKey,
-				transactionAccount.PublicKey,
+				transactionAccount,
 				accountA.PublicKey,
 			),
 		},
-		Signers:         []types.Account{accountA, feePayer},
+		Signers:         []types.Account{accountA, feePayer, multisigBaseAccount},
 		FeePayer:        feePayer.PublicKey,
 		RecentBlockHash: res.Blockhash,
 	})
@@ -539,19 +557,21 @@ func ExampleMultisigStake(t *testing.T) {
 	remainingAccounts := []types.AccountMeta{
 		{PubKey: common.StakeProgramID, IsWritable: false, IsSigner: false},
 		{PubKey: common.MultisigProgramID, IsWritable: false, IsSigner: false},
-		{PubKey: stakeAccount.PublicKey, IsSigner: false, IsWritable: true},
+		{PubKey: stakeAccount, IsSigner: false, IsWritable: true},
 		{PubKey: validatorPubkey, IsSigner: false, IsWritable: false},
 		{PubKey: common.SysVarClockPubkey, IsSigner: false, IsWritable: false},
 		{PubKey: common.SysVarStakeHistoryPubkey, IsSigner: false, IsWritable: false},
 		{PubKey: common.StakeConfigPubkey, IsSigner: false, IsWritable: false},
-		{PubKey: multiSigner, IsSigner: false, IsWritable: false},
+		{PubKey: multiSigner, IsSigner: false, IsWritable: true},
+		{PubKey: common.SystemProgramID, IsWritable: false, IsSigner: false},
 	}
+
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
 			multisigprog.Approve(
 				multisigAccount.PublicKey,
 				multiSigner,
-				transactionAccount.PublicKey,
+				transactionAccount,
 				accountB.PublicKey,
 				remainingAccounts,
 			),
@@ -571,6 +591,7 @@ func ExampleMultisigStake(t *testing.T) {
 		t.Fatalf("send tx error, err: %v\n", err)
 	}
 	t.Log("Approve txHash:", txHash)
+	// OutPut:
 
 }
 
@@ -1036,4 +1057,22 @@ func ExampleAccountInfo(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestGetAccountInfo(t *testing.T) {
+	c := client.NewClient(client.DevnetRPCEndpoint)
+
+	accountInfo, err := c.GetStakeAccountInfo(context.Background(), "BNgbgqnVYLM97cD8XaW1ST6or56UnJB2HYXp5xwGHkTc",
+		client.GetAccountInfoConfig{
+			Encoding: client.GetAccountInfoConfigEncodingBase64,
+			DataSlice: client.GetAccountInfoConfigDataSlice{
+				Offset: 0,
+				Length: 200,
+			},
+		})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(fmt.Sprintf("%+v", accountInfo.Info.Stake.Delegation.Voter.ToBase58()))
+
 }
