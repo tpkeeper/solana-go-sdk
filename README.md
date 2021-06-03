@@ -2,7 +2,14 @@
 
 Solana Golang SDK
 
-forked from portto/solana-go-sdk
+forked from [portto/solana-go-sdk](https://github.com/portto/solana-go-sdk)
+
+here changed:
+
+* add multisigprog support
+* add getStakeAccountInfo
+* optimize serialize fucunc
+
 
 ## Getting Started
 
