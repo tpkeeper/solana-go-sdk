@@ -62,18 +62,18 @@ type TransactionUsedAccount struct {
 }
 
 func CreateTransaction(
-	txUsedProgramID common.PublicKey,
-	txUsedAccounts []TransactionUsedAccount,
-	txInstructionData []byte,
+	txUsedProgramID []common.PublicKey,
+	txUsedAccounts [][]TransactionUsedAccount,
+	txInstructionData [][]byte,
 	multisigAccount common.PublicKey,
 	txAccount common.PublicKey,
 	proposalAccount common.PublicKey) types.Instruction {
 
 	data, err := common.SerializeData(struct {
 		Instruction       Instruction
-		TxUsedProgramID   common.PublicKey
-		TxUsedAccounts    []TransactionUsedAccount
-		TxInstructionData []byte
+		TxUsedProgramID   []common.PublicKey
+		TxUsedAccounts    [][]TransactionUsedAccount
+		TxInstructionData [][]byte
 	}{
 		Instruction:       InstructionCreateTransaction,
 		TxUsedProgramID:   txUsedProgramID,

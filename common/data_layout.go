@@ -58,27 +58,18 @@ func serializeData(v reflect.Value) ([]byte, error) {
 			}
 			data = append(data, d...)
 		}
-		return data,nil
+		return data, nil
 	case reflect.Array:
-		switch v.Type().Elem().Kind() {
-		case reflect.Uint8:
-			b := make([]byte, 0, v.Len())
-			for i := 0; i < v.Len(); i++ {
-				b = append(b, byte(v.Index(i).Uint()))
+		data := make([]byte, 0)
+		for i := 0; i < v.Len(); i++ {
+			d, err := serializeData(v.Index(i))
+			if err != nil {
+				return nil, err
 			}
-			return b, nil
-		case reflect.Array:
-			data := make([]byte, 0)
-			for i := 0; i < v.Len(); i++ {
-				d, err := serializeData(v.Index(i))
-				if err != nil {
-					return nil, err
-				}
-				data = append(data, d...)
-			}
-			return data, nil
+			data = append(data, d...)
 		}
-		return nil, fmt.Errorf("unsupport type: %v, elem: %v", v.Kind(), v.Type().Elem().Kind())
+		return data, nil
+
 	case reflect.String:
 		return []byte(v.String()), nil
 	case reflect.Struct:

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"sync"
 	"testing"
 
 	"github.com/mr-tron/base58"
@@ -31,7 +32,6 @@ func ExampleMultisigTransfer() {
 	}
 
 	multisigAccount := types.NewAccount()
-	transactionAccount := types.NewAccount()
 	accountA := types.NewAccount()
 	accountB := types.NewAccount()
 	accountC := types.NewAccount()
@@ -69,11 +69,12 @@ func ExampleMultisigTransfer() {
 	if err != nil {
 		fmt.Printf("send tx error, err: %v\n", err)
 	}
+	transactionAccountPubkey := common.CreateWithSeed(feePayer.PublicKey, "1", common.MultisigProgramID)
 
 	fmt.Println("createMultisig txHash:", txHash)
 	fmt.Println("feePayer:", feePayer.PublicKey.ToBase58())
 	fmt.Println("multisig account:", multisigAccount.PublicKey.ToBase58())
-	fmt.Println("transaction account:", transactionAccount.PublicKey.ToBase58())
+	fmt.Println("transaction account:", transactionAccountPubkey.ToBase58())
 	fmt.Println("multiSigner:", multiSigner.ToBase58())
 	fmt.Println("accountA", accountA.PublicKey.ToBase58())
 	fmt.Println("accountB", accountB.PublicKey.ToBase58())
@@ -123,18 +124,21 @@ func ExampleMultisigTransfer() {
 
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
-			sysprog.CreateAccount(
+			sysprog.CreateAccountWithSeed(
 				feePayer.PublicKey,
-				transactionAccount.PublicKey,
+				transactionAccountPubkey,
+				feePayer.PublicKey,
 				common.MultisigProgramID,
+				"1",
 				1000000000,
-				1000,
+				500,
 			),
 		},
-		Signers:         []types.Account{feePayer, transactionAccount},
+		Signers:         []types.Account{feePayer},
 		FeePayer:        feePayer.PublicKey,
 		RecentBlockHash: res.Blockhash,
 	})
+
 	if err != nil {
 		fmt.Printf("generate create account tx error, err: %v\n", err)
 	}
@@ -152,11 +156,11 @@ func ExampleMultisigTransfer() {
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
 			multisigprog.CreateTransaction(
-				common.SystemProgramID,
-				txUsedAccounts,
-				transferInstruct.Data,
+				[]common.PublicKey{common.SystemProgramID},
+				[][]multisigprog.TransactionUsedAccount{txUsedAccounts},
+				[][]byte{transferInstruct.Data},
 				multisigAccount.PublicKey,
-				transactionAccount.PublicKey,
+				transactionAccountPubkey,
 				accountA.PublicKey,
 			),
 		},
@@ -205,7 +209,7 @@ func ExampleMultisigTransfer() {
 			multisigprog.Approve(
 				multisigAccount.PublicKey,
 				multiSigner,
-				transactionAccount.PublicKey,
+				transactionAccountPubkey,
 				accountB.PublicKey,
 				remainingAccounts,
 			),
@@ -225,7 +229,6 @@ func ExampleMultisigTransfer() {
 		fmt.Printf("send tx error, err: %v\n", err)
 	}
 	fmt.Println("Approve txHash:", txHash)
-
 }
 
 func TestCreateAccountEncode(t *testing.T) {
@@ -509,9 +512,9 @@ func ExampleMultisigStake(t *testing.T) {
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
 			multisigprog.CreateTransaction(
-				common.StakeProgramID,
-				txUsedAccounts,
-				stakeInstruction.Data,
+				[]common.PublicKey{common.StakeProgramID},
+				[][]multisigprog.TransactionUsedAccount{txUsedAccounts},
+				[][]byte{stakeInstruction.Data},
 				multisigAccount.PublicKey,
 				transactionAccount.PublicKey,
 				accountA.PublicKey,
@@ -742,9 +745,9 @@ func ExampleMultisigSplit(t *testing.T) {
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
 			multisigprog.CreateTransaction(
-				common.StakeProgramID,
-				txUsedAccounts,
-				stakeInstruction.Data,
+				[]common.PublicKey{common.StakeProgramID},
+				[][]multisigprog.TransactionUsedAccount{txUsedAccounts},
+				[][]byte{stakeInstruction.Data},
 				multisigAccount.PublicKey,
 				transactionAccount.PublicKey,
 				accountA.PublicKey,
@@ -850,9 +853,9 @@ func ExampleMultisigSplit(t *testing.T) {
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
 			multisigprog.CreateTransaction(
-				common.StakeProgramID,
-				txUsedAccounts,
-				splitInstruction.Data,
+				[]common.PublicKey{common.StakeProgramID},
+				[][]multisigprog.TransactionUsedAccount{txUsedAccounts},
+				[][]byte{splitInstruction.Data},
 				multisigAccount.PublicKey,
 				splitTransactionAccount.PublicKey,
 				accountA.PublicKey,
@@ -1008,19 +1011,29 @@ func splitNewToNew() {
 	log.Println("txHash:", txSig)
 }
 
-func TestAccountInfo(t *testing.T) {
+func ExampleAccountInfo(t *testing.T) {
 	c := client.NewClient(client.DevnetRPCEndpoint)
-	accountInfo, err := c.GetMultisigTxAccountInfo(context.Background(), "D6nA6QHpYQDMeudHLwZqgwyCJfRSKWfzW4kyaKqmnsr4",
-		client.GetAccountInfoConfig{
-			Encoding: client.GetAccountInfoConfigEncodingBase64,
-			DataSlice: client.GetAccountInfoConfigDataSlice{
-				Offset: 0,
-				Length: 1000,
-			},
-		})
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(accountInfo)
 
+	wg := sync.WaitGroup{}
+	wg.Add(10)
+
+	for i := 0; i < 10; i++ {
+		go func() {
+			accountInfo, err := c.GetMultisigTxAccountInfo(context.Background(), "D6nA6QHpYQDMeudHLwZqgwyCJfRSKWfzW4kyaKqmnsr4",
+				client.GetAccountInfoConfig{
+					Encoding: client.GetAccountInfoConfigEncodingBase64,
+					DataSlice: client.GetAccountInfoConfigDataSlice{
+						Offset: 0,
+						Length: 1000,
+					},
+				})
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Log(fmt.Printf("%+v", accountInfo))
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
 }

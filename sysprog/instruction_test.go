@@ -1,10 +1,14 @@
-package sysprog
+package sysprog_test
 
 import (
+	"context"
+	"fmt"
 	"reflect"
 	"testing"
 
+	"github.com/tpkeeper/solana-go-sdk/client"
 	"github.com/tpkeeper/solana-go-sdk/common"
+	"github.com/tpkeeper/solana-go-sdk/sysprog"
 	"github.com/tpkeeper/solana-go-sdk/types"
 )
 
@@ -65,7 +69,7 @@ func TestCreateAccountWithSeed(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CreateAccountWithSeed(tt.args.fromPubkey, tt.args.newAccountPubkey, tt.args.basePubkey, tt.args.programID, tt.args.seed, tt.args.lamports, tt.args.space); !reflect.DeepEqual(got, tt.want) {
+			if got := sysprog.CreateAccountWithSeed(tt.args.fromPubkey, tt.args.newAccountPubkey, tt.args.basePubkey, tt.args.programID, tt.args.seed, tt.args.lamports, tt.args.space); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("CreateAccountWithSeed() = %v, want %v", got, tt.want)
 			}
 		})
@@ -105,7 +109,7 @@ func TestAllocateWithSeed(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := AllocateWithSeed(tt.args.accountPubkey, tt.args.basePubkey, tt.args.programID, tt.args.seed, tt.args.space); !reflect.DeepEqual(got, tt.want) {
+			if got := sysprog.AllocateWithSeed(tt.args.accountPubkey, tt.args.basePubkey, tt.args.programID, tt.args.seed, tt.args.space); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("AllocateWithSeed() = %v, want %v", got, tt.want)
 			}
 		})
@@ -143,7 +147,7 @@ func TestAssignWithSeed(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := AssignWithSeed(tt.args.accountPubkey, tt.args.assignToProgramID, tt.args.basePubkey, tt.args.seed); !reflect.DeepEqual(got, tt.want) {
+			if got := sysprog.AssignWithSeed(tt.args.accountPubkey, tt.args.assignToProgramID, tt.args.basePubkey, tt.args.seed); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("AssignWithSeed() = %v, want %v", got, tt.want)
 			}
 		})
@@ -176,7 +180,7 @@ func TestAllocate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := Allocate(tt.args.accountPubkey, tt.args.space); !reflect.DeepEqual(got, tt.want) {
+			if got := sysprog.Allocate(tt.args.accountPubkey, tt.args.space); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Allocate() = %v, want %v", got, tt.want)
 			}
 		})
@@ -209,7 +213,7 @@ func TestAssign(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := Assign(tt.args.accountPubkey, tt.args.assignToProgramID); !reflect.DeepEqual(got, tt.want) {
+			if got := sysprog.Assign(tt.args.accountPubkey, tt.args.assignToProgramID); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Assign() = %v, want %v", got, tt.want)
 			}
 		})
@@ -252,7 +256,7 @@ func TestTransferWithSeed(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := TransferWithSeed(tt.args.from, tt.args.to, tt.args.base, tt.args.programID, tt.args.seed, tt.args.lamports); !reflect.DeepEqual(got, tt.want) {
+			if got := sysprog.TransferWithSeed(tt.args.from, tt.args.to, tt.args.base, tt.args.programID, tt.args.seed, tt.args.lamports); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("TransferWithSeed() = %v, want %v", got, tt.want)
 			}
 		})
@@ -292,7 +296,7 @@ func TestCreateAccount(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CreateAccount(tt.args.fromAccount, tt.args.newAccount, tt.args.owner, tt.args.initLamports, tt.args.accountSpace); !reflect.DeepEqual(got, tt.want) {
+			if got := sysprog.CreateAccount(tt.args.fromAccount, tt.args.newAccount, tt.args.owner, tt.args.initLamports, tt.args.accountSpace); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("CreateAccount() = %v, want %v", got, tt.want)
 			}
 		})
@@ -336,7 +340,7 @@ func TestTransfer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := Transfer(tt.args.from, tt.args.to, tt.args.number); !reflect.DeepEqual(got, tt.want) {
+			if got := sysprog.Transfer(tt.args.from, tt.args.to, tt.args.number); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Transfer() = %v, want %v", got, tt.want)
 			}
 		})
@@ -371,7 +375,7 @@ func TestAdvanceNonceAccount(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := AdvanceNonceAccount(tt.args.noncePubkey, tt.args.authPubkey); !reflect.DeepEqual(got, tt.want) {
+			if got := sysprog.AdvanceNonceAccount(tt.args.noncePubkey, tt.args.authPubkey); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("AdvanceNonceAccount() = %v, want %v", got, tt.want)
 			}
 		})
@@ -406,7 +410,7 @@ func TestInitializeNonceAccount(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := InitializeNonceAccount(tt.args.noncePubkey, tt.args.authPubkey); !reflect.DeepEqual(got, tt.want) {
+			if got := sysprog.InitializeNonceAccount(tt.args.noncePubkey, tt.args.authPubkey); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("InitializeNonceAccount() = %v, want %v", got, tt.want)
 			}
 		})
@@ -447,7 +451,7 @@ func TestWithdrawNonceAccount(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := WithdrawNonceAccount(tt.args.noncePubkey, tt.args.authPubkey, tt.args.toPubkey, tt.args.lamports); !reflect.DeepEqual(got, tt.want) {
+			if got := sysprog.WithdrawNonceAccount(tt.args.noncePubkey, tt.args.authPubkey, tt.args.toPubkey, tt.args.lamports); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("WithdrawNonceAccount() = %v, want %v", got, tt.want)
 			}
 		})
@@ -483,9 +487,97 @@ func TestAuthorizeNonceAccount(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := AuthorizeNonceAccount(tt.args.noncePubkey, tt.args.oriAuthPubkey, tt.args.newAuthPubkey); !reflect.DeepEqual(got, tt.want) {
+			if got := sysprog.AuthorizeNonceAccount(tt.args.noncePubkey, tt.args.oriAuthPubkey, tt.args.newAuthPubkey); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("AuthorizeNonceAccount() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
+
+func ExampleCreateAccount() {
+	c := client.NewClient(client.DevnetRPCEndpoint)
+
+	res, err := c.GetRecentBlockhash(context.Background())
+	if err != nil {
+		fmt.Printf("get recent block hash error, err: %v\n", err)
+	}
+	feePayer := types.AccountFromPrivateKeyBytes([]byte{179, 95, 213, 234, 125, 167, 246, 188, 230, 134, 181, 219, 31, 146, 239, 75, 190, 124, 112, 93, 187, 140, 178, 119, 90, 153, 207, 178, 137, 5, 53, 71, 116, 28, 190, 12, 249, 238, 110, 135, 109, 21, 196, 36, 191, 19, 236, 175, 229, 204, 68, 180, 130, 102, 71, 239, 41, 53, 152, 159, 175, 124, 180, 6})
+
+	_, err = c.RequestAirdrop(context.Background(), feePayer.PublicKey.ToBase58(), 10e9)
+	if err != nil {
+		fmt.Println(err)
+	}
+	multisigAccount := types.NewAccount()
+
+	rawTx, err := types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			sysprog.CreateAccount(
+				feePayer.PublicKey,
+				multisigAccount.PublicKey,
+				common.MultisigProgramID,
+				1000000000,
+				200,
+			),
+		},
+		Signers:         []types.Account{feePayer, multisigAccount},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+	if err != nil {
+		fmt.Printf("generate tx error, err: %v\n", err)
+	}
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
+	txHash, err := c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		fmt.Printf("send tx error, err: %v\n", err)
+	}
+
+	fmt.Println("createMultisig txHash:", txHash)
+
+}
+
+func ExampleCreateAccountWithSeed() {
+	c := client.NewClient(client.DevnetRPCEndpoint)
+
+	res, err := c.GetRecentBlockhash(context.Background())
+	if err != nil {
+		fmt.Printf("get recent block hash error, err: %v\n", err)
+	}
+	feePayer := types.AccountFromPrivateKeyBytes([]byte{179, 95, 213, 234, 125, 167, 246, 188, 230, 134, 181, 219, 31, 146, 239, 75, 190, 124, 112, 93, 187, 140, 178, 119, 90, 153, 207, 178, 137, 5, 53, 71, 116, 28, 190, 12, 249, 238, 110, 135, 109, 21, 196, 36, 191, 19, 236, 175, 229, 204, 68, 180, 130, 102, 71, 239, 41, 53, 152, 159, 175, 124, 180, 6})
+
+	_, err = c.RequestAirdrop(context.Background(), feePayer.PublicKey.ToBase58(), 10e9)
+	if err != nil {
+		fmt.Println(err)
+	}
+	multisigAccount := common.CreateWithSeed(feePayer.PublicKey,"hello",common.MultisigProgramID)
+
+	rawTx, err := types.CreateRawTransaction(types.CreateRawTransactionParam{
+		Instructions: []types.Instruction{
+			sysprog.CreateAccountWithSeed(
+				feePayer.PublicKey,
+				multisigAccount,
+				feePayer.PublicKey,
+				common.MultisigProgramID,
+				"hello",
+				1000000000,
+				200,
+			),
+		},
+		Signers:         []types.Account{feePayer},
+		FeePayer:        feePayer.PublicKey,
+		RecentBlockHash: res.Blockhash,
+	})
+	if err != nil {
+		fmt.Printf("generate tx error, err: %v\n", err)
+	}
+	// t.Log("rawtx base58:", base58.Encode(rawTx))
+	txHash, err := c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		fmt.Printf("send tx error, err: %v\n", err)
+	}
+
+	fmt.Println("createMultisig txHash:", txHash)
+
+}
+
+
