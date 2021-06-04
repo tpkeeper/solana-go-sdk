@@ -17,7 +17,7 @@ import (
 	"github.com/tpkeeper/solana-go-sdk/types"
 )
 
-func ExampleMultisigTransfer() {
+func TestMultisigTransfer(t *testing.T) {
 	c := client.NewClient(client.DevnetRPCEndpoint)
 
 	res, err := c.GetRecentBlockhash(context.Background())
@@ -1032,47 +1032,4 @@ func splitNewToNew() {
 	log.Println("txHash:", txSig)
 }
 
-func ExampleAccountInfo(t *testing.T) {
-	c := client.NewClient(client.DevnetRPCEndpoint)
 
-	wg := sync.WaitGroup{}
-	wg.Add(10)
-
-	for i := 0; i < 10; i++ {
-		go func() {
-			accountInfo, err := c.GetMultisigTxAccountInfo(context.Background(), "D6nA6QHpYQDMeudHLwZqgwyCJfRSKWfzW4kyaKqmnsr4",
-				client.GetAccountInfoConfig{
-					Encoding: client.GetAccountInfoConfigEncodingBase64,
-					DataSlice: client.GetAccountInfoConfigDataSlice{
-						Offset: 0,
-						Length: 1000,
-					},
-				})
-			if err != nil {
-				t.Fatal(err)
-			}
-			t.Log(fmt.Printf("%+v", accountInfo))
-			wg.Done()
-		}()
-	}
-
-	wg.Wait()
-}
-
-func TestGetAccountInfo(t *testing.T) {
-	c := client.NewClient(client.DevnetRPCEndpoint)
-
-	accountInfo, err := c.GetStakeAccountInfo(context.Background(), "BNgbgqnVYLM97cD8XaW1ST6or56UnJB2HYXp5xwGHkTc",
-		client.GetAccountInfoConfig{
-			Encoding: client.GetAccountInfoConfigEncodingBase64,
-			DataSlice: client.GetAccountInfoConfigDataSlice{
-				Offset: 0,
-				Length: 200,
-			},
-		})
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(fmt.Sprintf("%+v", accountInfo.Info.Stake.Delegation.Voter.ToBase58()))
-
-}
