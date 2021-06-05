@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
-	"sync"
 	"testing"
 
 	"github.com/mr-tron/base58"
