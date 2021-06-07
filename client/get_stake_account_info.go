@@ -13,12 +13,12 @@ type StakeAccount struct {
 	Type uint32
 	Info struct {
 		Meta struct {
-			RentExemptReserve uint64
+			RentExemptReserve int64
 			Authorized        struct {
 				Staker     common.PublicKey
 				Withdrawer common.PublicKey
 				Lockup     struct {
-					UnixTimeStamp uint64
+					UnixTimeStamp int64
 					Epoch         uint64
 					Custodian     common.PublicKey
 				}
@@ -27,10 +27,10 @@ type StakeAccount struct {
 		Stake struct {
 			Delegation struct {
 				Voter              common.PublicKey
-				Stake              uint64
-				ActivationEpoch    uint64
-				DeactivationEpoch  uint64
-				WarmupCooldownRate uint64
+				Stake              int64
+				ActivationEpoch    int64
+				DeactivationEpoch  int64
+				WarmupCooldownRate float64
 			}
 			CreditsObserved uint64
 		}

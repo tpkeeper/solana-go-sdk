@@ -9,7 +9,6 @@ import (
 	"github.com/tpkeeper/solana-go-sdk/client"
 )
 
-
 func TestAccountInfo(t *testing.T) {
 	c := client.NewClient(client.DevnetRPCEndpoint)
 
@@ -39,8 +38,7 @@ func TestAccountInfo(t *testing.T) {
 
 func TestGetAccountInfo(t *testing.T) {
 	c := client.NewClient(client.DevnetRPCEndpoint)
-
-	accountInfo, err := c.GetStakeAccountInfo(context.Background(), "BNgbgqnVYLM97cD8XaW1ST6or56UnJB2HYXp5xwGHkTc",
+	account, err := c.GetAccountInfo(context.Background(), "Gnr9LuHUh85Dt7Qr3tayXrxFAEn32jRDfsgTAyywFhyh",
 		client.GetAccountInfoConfig{
 			Encoding: client.GetAccountInfoConfigEncodingBase64,
 			DataSlice: client.GetAccountInfoConfigDataSlice{
@@ -51,7 +49,21 @@ func TestGetAccountInfo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(fmt.Sprintf("%+v", accountInfo.Info.Stake.Delegation.Voter.ToBase58()))
+
+	t.Log(account)
+
+	accountInfo, err := c.GetStakeAccountInfo(context.Background(), "Gnr9LuHUh85Dt7Qr3tayXrxFAEn32jRDfsgTAyywFhyh",
+		client.GetAccountInfoConfig{
+			Encoding: client.GetAccountInfoConfigEncodingBase64,
+			DataSlice: client.GetAccountInfoConfigDataSlice{
+				Offset: 0,
+				Length: 200,
+			},
+		})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(fmt.Sprintf("%+v", accountInfo))
 
 	tx, err := c.GetConfirmedTransaction(context.Background(), "4nZS9xAHJtLrMHW3urxezd14NeRN8ux37uAA2nL8goSPexiXe3HPNSMaaZFPyeGXM9kodgW69uCtuDGrhWUYRZ8a")
 	if err != nil {
