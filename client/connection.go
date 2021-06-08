@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	DevnetRPCEndpoint  = "https://devnet.solana.com"
+	DevnetRPCEndpoint  = "https://api.devnet.solana.com"
 	TestnetRPCEndpoint = "https://testnet.solana.com"
 	MainnetRPCEndpoint = "https://api.mainnet-beta.solana.com"
 )

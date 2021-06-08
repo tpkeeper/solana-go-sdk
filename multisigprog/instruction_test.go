@@ -63,12 +63,11 @@ func TestMultisigTransfer(t *testing.T) {
 	if err != nil {
 		fmt.Printf("generate tx error, err: %v\n", err)
 	}
-	// t.Log("rawtx base58:", base58.Encode(rawTx))
 	txHash, err := c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
 		fmt.Printf("send tx error, err: %v\n", err)
 	}
-	transactionAccountPubkey := common.CreateWithSeed(feePayer.PublicKey, "1", common.MultisigProgramID)
+	transactionAccountPubkey := common.CreateWithSeed(feePayer.PublicKey, "11", common.MultisigProgramID)
 
 	fmt.Println("createMultisig txHash:", txHash)
 	fmt.Println("feePayer:", feePayer.PublicKey.ToBase58())
@@ -95,7 +94,6 @@ func TestMultisigTransfer(t *testing.T) {
 	if err != nil {
 		fmt.Printf("generate tx error, err: %v\n", err)
 	}
-	// t.Log("rawtx base58:", base58.Encode(rawTx))
 	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
 		fmt.Printf("send tx error, err: %v\n", err)
@@ -106,18 +104,7 @@ func TestMultisigTransfer(t *testing.T) {
 		fmt.Printf("get recent block hash error, err: %v\n", err)
 	}
 
-	txUsedAccounts := []multisigprog.TransactionUsedAccount{
-		{
-			Pubkey:     multiSigner,
-			IsSigner:   true,
-			IsWritable: true,
-		},
-		{
-			Pubkey:     accountA.PublicKey,
-			IsSigner:   false,
-			IsWritable: true,
-		},
-	}
+
 
 	transferInstruct := sysprog.Transfer(multiSigner, accountA.PublicKey, 1000000000)
 
@@ -128,7 +115,7 @@ func TestMultisigTransfer(t *testing.T) {
 				transactionAccountPubkey,
 				feePayer.PublicKey,
 				common.MultisigProgramID,
-				"1",
+				"11",
 				1000000000,
 				500,
 			),
@@ -156,7 +143,7 @@ func TestMultisigTransfer(t *testing.T) {
 		Instructions: []types.Instruction{
 			multisigprog.CreateTransaction(
 				[]common.PublicKey{common.SystemProgramID},
-				[][]multisigprog.TransactionUsedAccount{txUsedAccounts},
+				[][]types.AccountMeta{transferInstruct.Accounts},
 				[][]byte{transferInstruct.Data},
 				multisigAccount.PublicKey,
 				transactionAccountPubkey,
@@ -180,29 +167,32 @@ func TestMultisigTransfer(t *testing.T) {
 	fmt.Println("Create Transaction txHash:", txHash)
 
 	remainingAccounts := []types.AccountMeta{
-		{
-			PubKey:     multiSigner,
-			IsWritable: true,
-			IsSigner:   false,
-		},
-		{
-			PubKey:     accountA.PublicKey,
-			IsWritable: true,
-			IsSigner:   false,
-		},
+		// {
+		// 	PubKey:     multiSigner,
+		// 	IsWritable: true,
+		// 	IsSigner:   false,
+		// },
+		// {
+		// 	PubKey:     accountA.PublicKey,
+		// 	IsWritable: true,
+		// 	IsSigner:   false,
+		// },
 		{
 			PubKey:     common.SystemProgramID,
 			IsWritable: false,
 			IsSigner:   false,
 		},
 
-		{
-			PubKey:     common.MultisigProgramID,
-			IsWritable: false,
-			IsSigner:   false,
-		},
+		// {
+		// 	PubKey:     common.MultisigProgramID,
+		// 	IsWritable: false,
+		// 	IsSigner:   false,
+		// },
 	}
-
+	remainingAccounts = append(remainingAccounts, transferInstruct.Accounts...)
+	for i, _ := range remainingAccounts {
+		remainingAccounts[i].IsSigner = false
+	}
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
 			multisigprog.Approve(
@@ -501,18 +491,18 @@ func TestMultisigStake(t *testing.T) {
 	//create transaction account of this era
 	validatorPubkey := common.PublicKeyFromString("5MMCR4NbTZqjthjLGywmeT66iwE9J9f7kjtxzJjwfUx2")
 	stakeInstruction := stakeprog.DelegateStake(stakeAccount, multiSigner, validatorPubkey)
-	txUsedAccounts := []multisigprog.TransactionUsedAccount{
-		{Pubkey: stakeAccount, IsSigner: false, IsWritable: true},
-		{Pubkey: validatorPubkey, IsSigner: false, IsWritable: false},
-		{Pubkey: common.SysVarClockPubkey, IsSigner: false, IsWritable: false},
-		{Pubkey: common.SysVarStakeHistoryPubkey, IsSigner: false, IsWritable: false},
-		{Pubkey: common.StakeConfigPubkey, IsSigner: false, IsWritable: false},
-		{Pubkey: multiSigner, IsSigner: true, IsWritable: false},
+	txUsedAccounts := []types.AccountMeta{
+		{PubKey: stakeAccount, IsSigner: false, IsWritable: true},
+		{PubKey: validatorPubkey, IsSigner: false, IsWritable: false},
+		{PubKey: common.SysVarClockPubkey, IsSigner: false, IsWritable: false},
+		{PubKey: common.SysVarStakeHistoryPubkey, IsSigner: false, IsWritable: false},
+		{PubKey: common.StakeConfigPubkey, IsSigner: false, IsWritable: false},
+		{PubKey: multiSigner, IsSigner: true, IsWritable: false},
 	}
 
-	transferTxUsedAccounts := []multisigprog.TransactionUsedAccount{
-		{Pubkey: multiSigner, IsSigner: true, IsWritable: true},
-		{Pubkey: stakeAccount, IsSigner: false, IsWritable: true},
+	transferTxUsedAccounts := []types.AccountMeta{
+		{PubKey: multiSigner, IsSigner: true, IsWritable: true},
+		{PubKey: stakeAccount, IsSigner: false, IsWritable: true},
 	}
 
 	transferInstruct := sysprog.Transfer(multiSigner, stakeAccount, 2000000000)
@@ -530,7 +520,7 @@ func TestMultisigStake(t *testing.T) {
 			),
 			multisigprog.CreateTransaction(
 				[]common.PublicKey{common.SystemProgramID, common.StakeProgramID},
-				[][]multisigprog.TransactionUsedAccount{transferTxUsedAccounts, txUsedAccounts},
+				[][]types.AccountMeta{transferTxUsedAccounts, txUsedAccounts},
 				[][]byte{transferInstruct.Data, stakeInstruction.Data},
 				multisigAccount.PublicKey,
 				transactionAccount,
@@ -594,7 +584,7 @@ func TestMultisigStake(t *testing.T) {
 
 }
 
-func ExampleMultisigSplit(t *testing.T) {
+func TestMultisigSplit(t *testing.T) {
 	c := client.NewClient(client.DevnetRPCEndpoint)
 
 	res, err := c.GetRecentBlockhash(context.Background())
@@ -725,14 +715,6 @@ func ExampleMultisigSplit(t *testing.T) {
 
 	validatorPubkey := common.PublicKeyFromString("5MMCR4NbTZqjthjLGywmeT66iwE9J9f7kjtxzJjwfUx2")
 	stakeInstruction := stakeprog.DelegateStake(stakeAccount.PublicKey, multiSigner, validatorPubkey)
-	txUsedAccounts := []multisigprog.TransactionUsedAccount{
-		{Pubkey: stakeAccount.PublicKey, IsSigner: false, IsWritable: true},
-		{Pubkey: validatorPubkey, IsSigner: false, IsWritable: false},
-		{Pubkey: common.SysVarClockPubkey, IsSigner: false, IsWritable: false},
-		{Pubkey: common.SysVarStakeHistoryPubkey, IsSigner: false, IsWritable: false},
-		{Pubkey: common.StakeConfigPubkey, IsSigner: false, IsWritable: false},
-		{Pubkey: multiSigner, IsSigner: true, IsWritable: false},
-	}
 
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
@@ -766,7 +748,7 @@ func ExampleMultisigSplit(t *testing.T) {
 		Instructions: []types.Instruction{
 			multisigprog.CreateTransaction(
 				[]common.PublicKey{common.StakeProgramID},
-				[][]multisigprog.TransactionUsedAccount{txUsedAccounts},
+				[][]types.AccountMeta{stakeInstruction.Accounts},
 				[][]byte{stakeInstruction.Data},
 				multisigAccount.PublicKey,
 				transactionAccount.PublicKey,
@@ -791,13 +773,10 @@ func ExampleMultisigSplit(t *testing.T) {
 
 	remainingAccounts := []types.AccountMeta{
 		{PubKey: common.StakeProgramID, IsWritable: false, IsSigner: false},
-		{PubKey: common.MultisigProgramID, IsWritable: false, IsSigner: false},
-		{PubKey: stakeAccount.PublicKey, IsSigner: false, IsWritable: true},
-		{PubKey: validatorPubkey, IsSigner: false, IsWritable: false},
-		{PubKey: common.SysVarClockPubkey, IsSigner: false, IsWritable: false},
-		{PubKey: common.SysVarStakeHistoryPubkey, IsSigner: false, IsWritable: false},
-		{PubKey: common.StakeConfigPubkey, IsSigner: false, IsWritable: false},
-		{PubKey: multiSigner, IsSigner: false, IsWritable: false},
+	}
+	remainingAccounts = append(remainingAccounts, stakeInstruction.Accounts...)
+	for i, _ := range remainingAccounts {
+		remainingAccounts[i].IsSigner = false
 	}
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
@@ -829,12 +808,8 @@ func ExampleMultisigSplit(t *testing.T) {
 	// split operate
 
 	splitInstruction := stakeprog.Split(stakeAccount.PublicKey, multiSigner, splitStakeAccount.PublicKey, 1e8)
-	txUsedAccounts = []multisigprog.TransactionUsedAccount{
-		{Pubkey: stakeAccount.PublicKey, IsSigner: false, IsWritable: true},
-		{Pubkey: splitStakeAccount.PublicKey, IsSigner: false, IsWritable: true},
-		{Pubkey: multiSigner, IsSigner: true, IsWritable: false},
-	}
-
+	withdrawInstruction := stakeprog.Withdraw(splitStakeAccount.PublicKey, multiSigner, accountC.PublicKey, 1e8, common.PublicKey{})
+	
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
 			sysprog.CreateAccount(
@@ -873,9 +848,9 @@ func ExampleMultisigSplit(t *testing.T) {
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
 			multisigprog.CreateTransaction(
-				[]common.PublicKey{common.StakeProgramID},
-				[][]multisigprog.TransactionUsedAccount{txUsedAccounts},
-				[][]byte{splitInstruction.Data},
+				[]common.PublicKey{common.StakeProgramID, common.StakeProgramID},
+				[][]types.AccountMeta{splitInstruction.Accounts, withdrawInstruction.Accounts},
+				[][]byte{splitInstruction.Data, withdrawInstruction.Data},
 				multisigAccount.PublicKey,
 				splitTransactionAccount.PublicKey,
 				accountA.PublicKey,
@@ -896,11 +871,15 @@ func ExampleMultisigSplit(t *testing.T) {
 		t.Fatalf("send tx error, err: %v\n", err)
 	}
 	t.Log("Create Transaction txHash:", txHash)
+
+
 	remainingAccounts = []types.AccountMeta{
-		{PubKey: stakeAccount.PublicKey, IsSigner: false, IsWritable: true},
-		{PubKey: splitStakeAccount.PublicKey, IsSigner: false, IsWritable: true},
-		{PubKey: multiSigner, IsSigner: false, IsWritable: false},
 		{PubKey: common.StakeProgramID, IsWritable: false, IsSigner: false},
+	}
+	remainingAccounts = append(remainingAccounts, splitInstruction.Accounts...)
+	remainingAccounts = append(remainingAccounts, withdrawInstruction.Accounts...)
+	for i, _ := range remainingAccounts {
+		remainingAccounts[i].IsSigner = false
 	}
 
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
@@ -1030,5 +1009,3 @@ func splitNewToNew() {
 
 	log.Println("txHash:", txSig)
 }
-
-

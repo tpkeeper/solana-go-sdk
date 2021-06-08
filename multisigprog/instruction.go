@@ -63,7 +63,7 @@ type TransactionUsedAccount struct {
 
 func CreateTransaction(
 	txUsedProgramID []common.PublicKey,
-	txUsedAccounts [][]TransactionUsedAccount,
+	txUsedAccounts [][]types.AccountMeta,
 	txInstructionData [][]byte,
 	multisigAccount common.PublicKey,
 	txAccount common.PublicKey,
@@ -72,7 +72,7 @@ func CreateTransaction(
 	data, err := common.SerializeData(struct {
 		Instruction       Instruction
 		TxUsedProgramID   []common.PublicKey
-		TxUsedAccounts    [][]TransactionUsedAccount
+		TxUsedAccounts    [][]types.AccountMeta
 		TxInstructionData [][]byte
 	}{
 		Instruction:       InstructionCreateTransaction,
