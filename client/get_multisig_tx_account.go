@@ -23,10 +23,18 @@ type TransactionAccount struct {
 	IsWritable uint8
 }
 
-func (s *Client) GetMultisigTxAccountInfo(ctx context.Context, account string,
-	cfg GetAccountInfoConfig) (*GetMultisigTxAccountInfo, error) {
+var MultisigTxAccountLengthDefault = uint64(1000)
+var GetMultsigTxAccountInfoCfgDefault = GetAccountInfoConfig{
+	Encoding: GetAccountInfoConfigEncodingBase64,
+	DataSlice: GetAccountInfoConfigDataSlice{
+		Offset: 0,
+		Length: MultisigTxAccountLengthDefault,
+	},
+}
 
-	accountInfo, err := s.GetAccountInfo(ctx, account, cfg)
+func (s *Client) GetMultisigTxAccountInfo(ctx context.Context, account string) (*GetMultisigTxAccountInfo, error) {
+
+	accountInfo, err := s.GetAccountInfo(ctx, account, GetMultsigTxAccountInfoCfgDefault)
 	if err != nil {
 		return nil, err
 	}

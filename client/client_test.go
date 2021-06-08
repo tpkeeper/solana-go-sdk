@@ -17,14 +17,7 @@ func TestAccountInfo(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		go func() {
-			accountInfo, err := c.GetMultisigTxAccountInfo(context.Background(), "D6nA6QHpYQDMeudHLwZqgwyCJfRSKWfzW4kyaKqmnsr4",
-				client.GetAccountInfoConfig{
-					Encoding: client.GetAccountInfoConfigEncodingBase64,
-					DataSlice: client.GetAccountInfoConfigDataSlice{
-						Offset: 0,
-						Length: 1000,
-					},
-				})
+			accountInfo, err := c.GetMultisigTxAccountInfo(context.Background(), "D6nA6QHpYQDMeudHLwZqgwyCJfRSKWfzW4kyaKqmnsr4")
 			if err != nil {
 				t.Fatal(err)
 			}
