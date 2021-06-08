@@ -121,3 +121,19 @@ func Approve(multisigAccount, multiSiner, txAccount, approverAccount common.Publ
 		Data:      data,
 	}
 }
+
+func GetRemainAccounts(ins []types.Instruction) []types.AccountMeta {
+	ret := []types.AccountMeta{}
+	for _, in := range ins {
+		ret = append(ret, types.AccountMeta{
+			PubKey:     in.ProgramID,
+			IsSigner:   false,
+			IsWritable: false,
+		})
+		ret = append(ret, in.Accounts...)
+	}
+	for i, _ := range ret {
+		ret[i].IsSigner = false
+	}
+	return ret
+}

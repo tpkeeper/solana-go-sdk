@@ -166,33 +166,7 @@ func TestMultisigTransfer(t *testing.T) {
 	}
 	fmt.Println("Create Transaction txHash:", txHash)
 
-	remainingAccounts := []types.AccountMeta{
-		// {
-		// 	PubKey:     multiSigner,
-		// 	IsWritable: true,
-		// 	IsSigner:   false,
-		// },
-		// {
-		// 	PubKey:     accountA.PublicKey,
-		// 	IsWritable: true,
-		// 	IsSigner:   false,
-		// },
-		{
-			PubKey:     common.SystemProgramID,
-			IsWritable: false,
-			IsSigner:   false,
-		},
-
-		// {
-		// 	PubKey:     common.MultisigProgramID,
-		// 	IsWritable: false,
-		// 	IsSigner:   false,
-		// },
-	}
-	remainingAccounts = append(remainingAccounts, transferInstruct.Accounts...)
-	for i, _ := range remainingAccounts {
-		remainingAccounts[i].IsSigner = false
-	}
+	remainingAccounts := multisigprog.GetRemainAccounts([]types.Instruction{transferInstruct})
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
 			multisigprog.Approve(
@@ -873,14 +847,15 @@ func TestMultisigSplit(t *testing.T) {
 	t.Log("Create Transaction txHash:", txHash)
 
 
-	remainingAccounts = []types.AccountMeta{
-		{PubKey: common.StakeProgramID, IsWritable: false, IsSigner: false},
-	}
-	remainingAccounts = append(remainingAccounts, splitInstruction.Accounts...)
-	remainingAccounts = append(remainingAccounts, withdrawInstruction.Accounts...)
-	for i, _ := range remainingAccounts {
-		remainingAccounts[i].IsSigner = false
-	}
+	remainingAccounts = multisigprog.GetRemainAccounts([]types.Instruction{splitInstruction,withdrawInstruction})
+	// remainingAccounts = []types.AccountMeta{
+	// 	{PubKey: common.StakeProgramID, IsWritable: false, IsSigner: false},
+	// }
+	// remainingAccounts = append(remainingAccounts, splitInstruction.Accounts...)
+	// remainingAccounts = append(remainingAccounts, withdrawInstruction.Accounts...)
+	// for i, _ := range remainingAccounts {
+	// 	remainingAccounts[i].IsSigner = false
+	// }
 
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
