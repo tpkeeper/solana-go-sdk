@@ -45,7 +45,15 @@ type StakeAccount struct {
 	}
 }
 
-func (s *Client) GetStakeAccountInfo(ctx context.Context, account string) (*StakeAccount, error) {
+type StakeAccountRsp struct {
+	Lamports     uint64
+	Owner        string
+	Excutable    bool
+	RentEpoch    uint64
+	StakeAccount StakeAccount
+}
+
+func (s *Client) GetStakeAccountInfo(ctx context.Context, account string) (*StakeAccountRsp, error) {
 
 	accountInfo, err := s.GetAccountInfo(ctx, account, GetStakeAccountInfoConfigDefault)
 	if err != nil {
@@ -77,5 +85,12 @@ func (s *Client) GetStakeAccountInfo(ctx context.Context, account string) (*Stak
 	if err != nil {
 		return nil, err
 	}
-	return &stakeAccountInfo, nil
+	rsp := StakeAccountRsp{
+		Lamports:     accountInfo.Lamports,
+		Owner:        accountInfo.Owner,
+		Excutable:    accountInfo.Excutable,
+		RentEpoch:    accountInfo.RentEpoch,
+		StakeAccount: stakeAccountInfo,
+	}
+	return &rsp, nil
 }
