@@ -50,6 +50,7 @@ type GetAccountInfoResponse struct {
 	Data      interface{} `json:"data"`
 }
 
+
 func (s *Client) GetAccountInfo(ctx context.Context, account string, cfg GetAccountInfoConfig) (GetAccountInfoResponse, error) {
 	res := struct {
 		GeneralResponse

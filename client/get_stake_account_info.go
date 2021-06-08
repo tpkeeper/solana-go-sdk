@@ -9,6 +9,14 @@ import (
 	"github.com/tpkeeper/solana-go-sdk/common"
 )
 
+var GetStakeAccountInfoConfigDefault = GetAccountInfoConfig{
+	Encoding: GetAccountInfoConfigEncodingBase64,
+	DataSlice: GetAccountInfoConfigDataSlice{
+		Offset: 0,
+		Length: 200,
+	},
+}
+
 type StakeAccount struct {
 	Type uint32
 	Info struct {
@@ -37,10 +45,9 @@ type StakeAccount struct {
 	}
 }
 
-func (s *Client) GetStakeAccountInfo(ctx context.Context, account string,
-	cfg GetAccountInfoConfig) (*StakeAccount, error) {
+func (s *Client) GetStakeAccountInfo(ctx context.Context, account string) (*StakeAccount, error) {
 
-	accountInfo, err := s.GetAccountInfo(ctx, account, cfg)
+	accountInfo, err := s.GetAccountInfo(ctx, account, GetStakeAccountInfoConfigDefault)
 	if err != nil {
 		return nil, err
 	}
