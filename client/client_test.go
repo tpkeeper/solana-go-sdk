@@ -54,13 +54,13 @@ func TestGetAccountInfo(t *testing.T) {
 	t.Log(fmt.Sprintf("%+v", accountInfo))
 
 
-	accountInfo, err = c.GetStakeAccountInfo(context.Background(), "2hGmKZDmfCNa5dEZ6onmtJCKhCjN7Fe7bG2HXV1jwLru")
+	accountInfo, err = c.GetStakeAccountInfo(context.Background(), "mNzHTv7KtARcYyJiaXH3SU2oSnLoXKVJxcxDknC2kae")
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log(fmt.Sprintf("%+v", accountInfo))
 
-	accountInfo, err = c.GetStakeAccountInfo(context.Background(), "mNzHTv7KtARcYyJiaXH3SU2oSnLoXKVJxcxDknC2kae")
+	accountInfo, err = c.GetStakeAccountInfo(context.Background(), "HoyKcWNCz77ZFvXoJHjHZN1q9czQcBHq8McFpLSCzDHp")
 	if err != nil {
 		t.Fatal(err)
 	}

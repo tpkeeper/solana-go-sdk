@@ -768,7 +768,7 @@ func TestMultisigSplit(t *testing.T) {
 	// split operate
 
 	splitInstruction := stakeprog.Split(stakeAccount.PublicKey, multiSigner, splitStakeAccount.PublicKey, 1e8)
-	withdrawInstruction := stakeprog.Withdraw(splitStakeAccount.PublicKey, multiSigner, accountC.PublicKey, 1e8, common.PublicKey{})
+	withdrawInstruction := stakeprog.Deactivate(splitStakeAccount.PublicKey, multiSigner)
 
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{

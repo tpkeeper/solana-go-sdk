@@ -45,6 +45,11 @@ type StakeAccount struct {
 	}
 }
 
+func (s *StakeAccount) StakeNoDeactive() bool {
+	return s.Type == 2 && s.Info.Stake.Delegation.ActivationEpoch != -1 &&
+		s.Info.Stake.Delegation.DeactivationEpoch == -1
+}
+
 type StakeAccountRsp struct {
 	Lamports     uint64
 	Owner        string
