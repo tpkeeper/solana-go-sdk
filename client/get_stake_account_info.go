@@ -45,7 +45,7 @@ type StakeAccount struct {
 	}
 }
 
-func (s *StakeAccount) StakeNoDeactive() bool {
+func (s *StakeAccount) IsStakeAndNoDeactive() bool {
 	return s.Type == 2 && s.Info.Stake.Delegation.ActivationEpoch != -1 &&
 		s.Info.Stake.Delegation.DeactivationEpoch == -1
 }
