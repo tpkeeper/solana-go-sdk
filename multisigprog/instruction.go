@@ -25,6 +25,7 @@ func init() {
 }
 
 func CreateMultisig(
+	programID,
 	multisigAccount common.PublicKey,
 	owners []common.PublicKey,
 	threshold uint64,
@@ -46,7 +47,7 @@ func CreateMultisig(
 	}
 
 	return types.Instruction{
-		ProgramID: common.MultisigProgramID,
+		ProgramID: programID,
 		Accounts: []types.AccountMeta{
 			{PubKey: multisigAccount, IsSigner: false, IsWritable: true},
 			{PubKey: common.SysVarRentPubkey, IsSigner: false, IsWritable: false},
@@ -62,6 +63,7 @@ type TransactionUsedAccount struct {
 }
 
 func CreateTransaction(
+	programID common.PublicKey,
 	txUsedProgramID []common.PublicKey,
 	txUsedAccounts [][]types.AccountMeta,
 	txInstructionData [][]byte,
@@ -85,7 +87,7 @@ func CreateTransaction(
 	}
 
 	return types.Instruction{
-		ProgramID: common.MultisigProgramID,
+		ProgramID: programID,
 		Accounts: []types.AccountMeta{
 			{PubKey: multisigAccount, IsSigner: false, IsWritable: false},
 			{PubKey: txAccount, IsSigner: false, IsWritable: true},
@@ -96,7 +98,12 @@ func CreateTransaction(
 	}
 }
 
-func Approve(multisigAccount, multiSiner, txAccount, approverAccount common.PublicKey,
+func Approve(
+	programID,
+	multisigAccount,
+	multiSiner,
+	txAccount,
+	approverAccount common.PublicKey,
 	remainingAccounts []types.AccountMeta) types.Instruction {
 
 	data, err := common.SerializeData(struct {
@@ -116,7 +123,7 @@ func Approve(multisigAccount, multiSiner, txAccount, approverAccount common.Publ
 	}
 
 	return types.Instruction{
-		ProgramID: common.MultisigProgramID,
+		ProgramID: programID,
 		Accounts:  append(accounts, remainingAccounts...),
 		Data:      data,
 	}

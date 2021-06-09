@@ -2,11 +2,13 @@ package client_test
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"testing"
 
 	"github.com/tpkeeper/solana-go-sdk/client"
+	"github.com/tpkeeper/solana-go-sdk/common"
 )
 
 func TestAccountInfo(t *testing.T) {
@@ -72,5 +74,5 @@ func TestGetAccountInfo(t *testing.T) {
 	}
 
 	t.Log(fmt.Sprintf("%+v", tx))
-
+	t.Log(hex.EncodeToString(common.PublicKeyFromString("DRtThFS61F2WhHkT5woKFhNTtiLHDjss3aykKQkmZ7wy").Bytes()))
 }

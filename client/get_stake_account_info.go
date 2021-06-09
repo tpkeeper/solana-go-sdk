@@ -18,7 +18,7 @@ var GetStakeAccountInfoConfigDefault = GetAccountInfoConfig{
 }
 
 type StakeAccount struct {
-	Type uint32
+	Type uint32 //0 uninitialized 1 initialized 2 delegated 3 rewardspool
 	Info struct {
 		Meta struct {
 			RentExemptReserve int64
@@ -36,8 +36,8 @@ type StakeAccount struct {
 			Delegation struct {
 				Voter              common.PublicKey
 				Stake              int64
-				ActivationEpoch    int64
-				DeactivationEpoch  int64
+				ActivationEpoch    int64 //epoch when delegate
+				DeactivationEpoch  int64 //epoch when deactive
 				WarmupCooldownRate float64
 			}
 			CreditsObserved uint64
