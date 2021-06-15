@@ -2,6 +2,7 @@ package multisigprog_test
 
 import (
 	"context"
+	"crypto/ed25519"
 	"encoding/hex"
 	"fmt"
 	"log"
@@ -17,9 +18,10 @@ import (
 )
 
 var multisigProgramIDDev = common.PublicKeyFromString("6MSJ5y3b2j8NWhSTt5iBzWkjLNVi21ZWWs6TLBfNeJv3")
+var localClient = "http://127.0.0.1:8899"
 
 func TestMultisigTransfer(t *testing.T) {
-	c := client.NewClient(client.DevnetRPCEndpoint)
+	c := client.NewClient(localClient)
 
 	res, err := c.GetRecentBlockhash(context.Background())
 	if err != nil {
@@ -863,8 +865,15 @@ func TestMultisigSplit(t *testing.T) {
 	t.Log("Approve txHash:", txHash)
 }
 
-func ExampleSplit(t *testing.T) {
-	splitNewToNew()
+func TestSplit(t *testing.T) {
+	// splitNewToNew()
+	feePayer := types.AccountFromPrivateKeyBytes([]byte{179, 95, 213, 234, 125, 167, 246, 188, 230, 134, 181, 219, 31, 146, 239, 75, 190, 124, 112, 93, 187, 140, 178, 119, 90, 153, 207, 178, 137, 5, 53, 71, 116, 28, 190, 12, 249, 238, 110, 135, 109, 21, 196, 36, 191, 19, 236, 175, 229, 204, 68, 180, 130, 102, 71, 239, 41, 53, 152, 159, 175, 124, 180, 6})
+	t.Log(base58.Encode(feePayer.PrivateKey))
+	t.Log(hex.EncodeToString(feePayer.PublicKey.Bytes()))
+
+	sig := ed25519.Sign(feePayer.PrivateKey, []byte("34bwmgT1NtcL8FayGiFSB9F1qZFGPjhbDfTaZRoM2AXgjrpo"))
+	t.Log(hex.EncodeToString(sig))
+	t.Log(ed25519.Verify(feePayer.PublicKey[:], []byte("34bwmgT1NtcL8FayGiFSB9F1qZFGPjhbDfTaZRoM2AXgjrpo"), sig))
 }
 
 func splitNewToNew() {

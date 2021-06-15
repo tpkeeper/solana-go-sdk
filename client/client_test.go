@@ -2,13 +2,11 @@ package client_test
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"sync"
 	"testing"
 
 	"github.com/tpkeeper/solana-go-sdk/client"
-	"github.com/tpkeeper/solana-go-sdk/common"
 )
 
 func TestAccountInfo(t *testing.T) {
@@ -60,19 +58,11 @@ func TestGetAccountInfo(t *testing.T) {
 	}
 	t.Log(fmt.Sprintf("%+v", accountInfo))
 
-	accountInfo, err = c.GetStakeAccountInfo(context.Background(), "HoyKcWNCz77ZFvXoJHjHZN1q9czQcBHq8McFpLSCzDHp")
+	accountActivateInfo, err := c.GetStakeActivation(context.Background(), "DiPx1Vyo5khyG8XKTc8Tu4fL9qc57VSqfr7qh3xLxqjX",client.GetStakeActivationConfig{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(fmt.Sprintf("%+v", accountInfo))
-	
+	t.Log(fmt.Sprintf("%+v", accountActivateInfo))
 	
 
-	tx, err := c.GetConfirmedTransaction(context.Background(), "4nZS9xAHJtLrMHW3urxezd14NeRN8ux37uAA2nL8goSPexiXe3HPNSMaaZFPyeGXM9kodgW69uCtuDGrhWUYRZ8a")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Log(fmt.Sprintf("%+v", tx))
-	t.Log(hex.EncodeToString(common.PublicKeyFromString("DRtThFS61F2WhHkT5woKFhNTtiLHDjss3aykKQkmZ7wy").Bytes()))
 }
