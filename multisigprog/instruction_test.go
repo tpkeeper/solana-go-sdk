@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"testing"
-
 	"github.com/mr-tron/base58"
 	"github.com/tpkeeper/solana-go-sdk/client"
 	"github.com/tpkeeper/solana-go-sdk/common"
@@ -305,12 +304,18 @@ func TestDecodeBlockHash(t *testing.T) {
 }
 
 func TestGetTx(t *testing.T) {
-	c := client.NewClient(client.DevnetRPCEndpoint)
-	tx, err := c.GetConfirmedTransaction(context.Background(), "3F6Dkh1JfX8zaVQgbRSNqwigqhGSmErvWPRz7D27CTUcWpf1j2dkWkc4m6u7K6gehqnGp1DPTAvgJELF7QpDaYje")
+	c := client.NewClient(localClient)
+	tx, err := c.GetConfirmedTransaction(context.Background(), "21KTJBnCoLZ2TKE25JdWRKwrScxUaNKarej48ehAXSkfSnu5j8vQaSXLw3xaZtUpevqi4nHy2AbMkx568a4tzTxp")
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(fmt.Sprintf("%+v", tx.Transaction.Message))
+	t.Log(fmt.Sprintf("%+v", tx))
+	t.Log(fmt.Sprintf("%+v", tx.Transaction.Message.AccountKeys))
+	block,err:=c.GetConfirmedBlock(context.Background(),tx.Slot)
+	if err!=nil{
+		t.Fatal(err)
+	}
+	t.Log(fmt.Sprintf("%+v",block.Blockhash))
 }
 
 func TestMultisigStake(t *testing.T) {
@@ -957,5 +962,27 @@ func TestGetMultisigTxInfo(t *testing.T){
 	if err!=nil{
 		t.Fatal(err)
 	}
-	t.Log(info)
+	t.Log(fmt.Printf("%+v",info))
+}
+
+func TestBaseToHex(t *testing.T){
+	pubkey:=common.PublicKeyFromString("9x6WP6TCYGRMvxZTqLmmNgbZCWCWTP9Roq9vVNrmphjx")
+	t.Log(hex.EncodeToString(pubkey.Bytes()))
+	pubkey=common.PublicKeyFromString("4gK7CJc8EepimFR5MhhL2Bzq6vFXUyePew2ivbchrek5")
+	t.Log(hex.EncodeToString(pubkey.Bytes()))
+	pubkey=common.PublicKeyFromString("2hNMLYb3DPqTKPi1s2KuSCYNMzoJBP524JUyEiS1dTA6")
+	t.Log(hex.EncodeToString(pubkey.Bytes()))
+	pubkey=common.PublicKeyFromString("4amNawQen9W2ryD9qAn3rwVRMCJJqVWjXWGojqe2RNVh")
+	t.Log(hex.EncodeToString(pubkey.Bytes()))
+	pubkey=common.PublicKeyFromString("9Riwnxn53S4wmy5h5nbQN1gxTCm1EvgqB4Gc5aKDAPyc")
+	t.Log(hex.EncodeToString(pubkey.Bytes()))
+
+	bts,_:=base58.Decode("2qfwtdJ7BtRnh81Jmbpt3xMMZQRV7xueyNx7cAXsYFSUbKj9gBQvrTcLeQ1VMD96y232tmLMqKSdJDn7b77yGdkg")
+	t.Log(hex.EncodeToString(bts))
+	pubkey=common.PublicKeyFromString("8pFiM2vyEzyYL7oJqaK2CgHPnARFdziM753rDHWsnhU1")
+	t.Log(hex.EncodeToString(pubkey.Bytes()))
+	bts,_=base58.Decode("DLQhRbwB3BbswrmFGYT5MDmyMyy4WPJLWYxBzESzcPE5")
+	t.Log(hex.EncodeToString(bts))
+	bts,_=base58.Decode("824Mgvgbw3kJvYSwnGes1eq71dz7LD1hiZPLEE2929SH")
+	t.Log(hex.EncodeToString(bts))
 }

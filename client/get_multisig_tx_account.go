@@ -36,7 +36,7 @@ func (s *Client) GetMultisigTxAccountInfo(ctx context.Context, account string) (
 
 	accountInfo, err := s.GetAccountInfo(ctx, account, GetMultsigTxAccountInfoCfgDefault)
 	if err != nil {
-		return nil, fmt.Errorf("GetAccountInfo err %s", err)
+		return nil, err
 	}
 
 	accountDataInterface, ok := accountInfo.Data.([]interface{})
@@ -62,7 +62,7 @@ func (s *Client) GetMultisigTxAccountInfo(ctx context.Context, account string) (
 	multiTxAccountInfo := GetMultisigTxAccountInfo{}
 	err = borsh.Deserialize(&multiTxAccountInfo, accountDataBts[8:])
 	if err != nil {
-		return nil, fmt.Errorf("Deserialize err %s", err)
+		return nil, fmt.Errorf("Deserialize err: %s", err)
 	}
 	return &multiTxAccountInfo, nil
 }
