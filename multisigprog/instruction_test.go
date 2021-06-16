@@ -17,7 +17,7 @@ import (
 	"github.com/tpkeeper/solana-go-sdk/types"
 )
 
-var multisigProgramIDDev = common.PublicKeyFromString("6MSJ5y3b2j8NWhSTt5iBzWkjLNVi21ZWWs6TLBfNeJv3")
+var multisigProgramIDDev = common.PublicKeyFromString("C4cJMqZM9eDoQdHw2HJW8WHha8h1CPRNVRJEykUFKUVk")
 var localClient = "http://127.0.0.1:8899"
 
 func TestMultisigTransfer(t *testing.T) {
@@ -544,7 +544,7 @@ func TestMultisigStake(t *testing.T) {
 }
 
 func TestMultisigSplit(t *testing.T) {
-	c := client.NewClient(client.DevnetRPCEndpoint)
+	c := client.NewClient(localClient)
 
 	res, err := c.GetRecentBlockhash(context.Background())
 	if err != nil {
@@ -645,35 +645,13 @@ func TestMultisigSplit(t *testing.T) {
 	t.Log("accountB", accountB.PublicKey.ToBase58())
 	t.Log("accountC", accountC.PublicKey.ToBase58())
 
-	//send 2 sol to account multisigner
-	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
-		Instructions: []types.Instruction{
-			sysprog.Transfer(
-				feePayer.PublicKey,
-				multiSigner,
-				2000000000,
-			),
-		},
-		Signers:         []types.Account{feePayer},
-		FeePayer:        feePayer.PublicKey,
-		RecentBlockHash: res.Blockhash,
-	})
-	if err != nil {
-		t.Fatalf("generate tx error, err: %v\n", err)
-	}
-	// t.Log("rawtx base58:", base58.Encode(rawTx))
-	txHash, err = c.SendRawTransaction(context.Background(), rawTx)
-	if err != nil {
-		t.Fatalf("send tx error, err: %v\n", err)
-	}
-	t.Log("send sol to multisigner txHash:", txHash)
-
+	
 	res, err = c.GetRecentBlockhash(context.Background())
 	if err != nil {
 		t.Fatalf("get recent block hash error, err: %v\n", err)
 	}
 
-	validatorPubkey := common.PublicKeyFromString("5MMCR4NbTZqjthjLGywmeT66iwE9J9f7kjtxzJjwfUx2")
+	validatorPubkey := common.PublicKeyFromString("G1WG6ukxbRHRCvLDeAhKkbwXpdsjX4VbsrBFM8xFCUV2")
 	stakeInstruction := stakeprog.DelegateStake(stakeAccount.PublicKey, multiSigner, validatorPubkey)
 
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
@@ -971,4 +949,13 @@ func splitNewToNew() {
 	}
 
 	log.Println("txHash:", txSig)
+}
+
+func TestGetMultisigTxInfo(t *testing.T){
+	c:=client.NewClient(localClient)
+	info,err:=c.GetMultisigTxAccountInfo(context.Background(),"ByorhXUES7EQHxx5epzgD7PM5fyorqE7L4XmAY2Qz6Vm")
+	if err!=nil{
+		t.Fatal(err)
+	}
+	t.Log(info)
 }
