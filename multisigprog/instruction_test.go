@@ -5,8 +5,6 @@ import (
 	"crypto/ed25519"
 	"encoding/hex"
 	"fmt"
-	"log"
-	"testing"
 	"github.com/mr-tron/base58"
 	"github.com/tpkeeper/solana-go-sdk/client"
 	"github.com/tpkeeper/solana-go-sdk/common"
@@ -14,6 +12,8 @@ import (
 	"github.com/tpkeeper/solana-go-sdk/stakeprog"
 	"github.com/tpkeeper/solana-go-sdk/sysprog"
 	"github.com/tpkeeper/solana-go-sdk/types"
+	"log"
+	"testing"
 )
 
 var multisigProgramIDDev = common.PublicKeyFromString("C4cJMqZM9eDoQdHw2HJW8WHha8h1CPRNVRJEykUFKUVk")
@@ -71,7 +71,8 @@ func TestMultisigTransfer(t *testing.T) {
 	if err != nil {
 		fmt.Printf("send tx error, err: %v\n", err)
 	}
-	transactionAccountPubkey := common.CreateWithSeed(feePayer.PublicKey, "11", multisigProgramIDDev)
+	seed:="3222"
+	transactionAccountPubkey := common.CreateWithSeed(feePayer.PublicKey, seed, multisigProgramIDDev)
 
 	fmt.Println("createMultisig txHash:", txHash)
 	fmt.Println("feePayer:", feePayer.PublicKey.ToBase58())
@@ -108,7 +109,18 @@ func TestMultisigTransfer(t *testing.T) {
 		fmt.Printf("get recent block hash error, err: %v\n", err)
 	}
 
-	transferInstruct := sysprog.Transfer(multiSigner, accountA.PublicKey, 1000000000)
+	transferInstruct := sysprog.Transfer(multiSigner, accountA.PublicKey, 10000000)
+
+	programIds := make([]common.PublicKey, 0)
+	accountMetas := make([][]types.AccountMeta, 0)
+	datas := make([][]byte, 0)
+	instructions := make([]types.Instruction, 0)
+	for i := 0; i < 7; i++ {
+		programIds = append(programIds, common.SystemProgramID)
+		accountMetas = append(accountMetas, transferInstruct.Accounts)
+		datas = append(datas, transferInstruct.Data)
+		instructions = append(instructions, transferInstruct)
+	}
 
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
@@ -117,9 +129,9 @@ func TestMultisigTransfer(t *testing.T) {
 				transactionAccountPubkey,
 				feePayer.PublicKey,
 				multisigProgramIDDev,
-				"11",
+				seed,
 				1000000000,
-				500,
+				1000,
 			),
 		},
 		Signers:         []types.Account{feePayer},
@@ -145,9 +157,9 @@ func TestMultisigTransfer(t *testing.T) {
 		Instructions: []types.Instruction{
 			multisigprog.CreateTransaction(
 				multisigProgramIDDev,
-				[]common.PublicKey{common.SystemProgramID},
-				[][]types.AccountMeta{transferInstruct.Accounts},
-				[][]byte{transferInstruct.Data},
+				programIds,
+				accountMetas,
+				datas,
 				multisigAccount.PublicKey,
 				transactionAccountPubkey,
 				accountA.PublicKey,
@@ -169,7 +181,7 @@ func TestMultisigTransfer(t *testing.T) {
 	}
 	fmt.Println("Create Transaction txHash:", txHash)
 
-	remainingAccounts := multisigprog.GetRemainAccounts([]types.Instruction{transferInstruct})
+	remainingAccounts := multisigprog.GetRemainAccounts(instructions)
 	rawTx, err = types.CreateRawTransaction(types.CreateRawTransactionParam{
 		Instructions: []types.Instruction{
 			multisigprog.Approve(
@@ -305,17 +317,17 @@ func TestDecodeBlockHash(t *testing.T) {
 
 func TestGetTx(t *testing.T) {
 	c := client.NewClient(localClient)
-	tx, err := c.GetConfirmedTransaction(context.Background(), "21KTJBnCoLZ2TKE25JdWRKwrScxUaNKarej48ehAXSkfSnu5j8vQaSXLw3xaZtUpevqi4nHy2AbMkx568a4tzTxp")
+	tx, err := c.GetConfirmedTransaction(context.Background(), "3y6Ruhb2Bsmt6ankJSgyWu4yvarYtkqzj4GHz9Do2xgD")
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log(fmt.Sprintf("%+v", tx))
 	t.Log(fmt.Sprintf("%+v", tx.Transaction.Message.AccountKeys))
-	block,err:=c.GetConfirmedBlock(context.Background(),tx.Slot)
-	if err!=nil{
+	block, err := c.GetConfirmedBlock(context.Background(), tx.Slot)
+	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(fmt.Sprintf("%+v",block.Blockhash))
+	t.Log(fmt.Sprintf("%+v", block.Blockhash))
 }
 
 func TestMultisigStake(t *testing.T) {
@@ -650,7 +662,6 @@ func TestMultisigSplit(t *testing.T) {
 	t.Log("accountB", accountB.PublicKey.ToBase58())
 	t.Log("accountC", accountC.PublicKey.ToBase58())
 
-	
 	res, err = c.GetRecentBlockhash(context.Background())
 	if err != nil {
 		t.Fatalf("get recent block hash error, err: %v\n", err)
@@ -956,33 +967,35 @@ func splitNewToNew() {
 	log.Println("txHash:", txSig)
 }
 
-func TestGetMultisigTxInfo(t *testing.T){
-	c:=client.NewClient(localClient)
-	info,err:=c.GetMultisigTxAccountInfo(context.Background(),"ByorhXUES7EQHxx5epzgD7PM5fyorqE7L4XmAY2Qz6Vm")
-	if err!=nil{
+func TestGetMultisigTxInfo(t *testing.T) {
+	c := client.NewClient(localClient)
+	info, err := c.GetMultisigTxAccountInfo(context.Background(), "3BEZYiXnz1psgej3VV1mE5ze3ZWu2rsbboA4kn1RTpUR")
+	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(fmt.Printf("%+v",info))
+	t.Log(fmt.Printf("%+v", info))
 }
 
-func TestBaseToHex(t *testing.T){
-	pubkey:=common.PublicKeyFromString("9x6WP6TCYGRMvxZTqLmmNgbZCWCWTP9Roq9vVNrmphjx")
+func TestBaseToHex(t *testing.T) {
+	pubkey := common.PublicKeyFromString("9x6WP6TCYGRMvxZTqLmmNgbZCWCWTP9Roq9vVNrmphjx")
 	t.Log(hex.EncodeToString(pubkey.Bytes()))
-	pubkey=common.PublicKeyFromString("4gK7CJc8EepimFR5MhhL2Bzq6vFXUyePew2ivbchrek5")
+	pubkey = common.PublicKeyFromString("4gK7CJc8EepimFR5MhhL2Bzq6vFXUyePew2ivbchrek5")
 	t.Log(hex.EncodeToString(pubkey.Bytes()))
-	pubkey=common.PublicKeyFromString("2hNMLYb3DPqTKPi1s2KuSCYNMzoJBP524JUyEiS1dTA6")
+	pubkey = common.PublicKeyFromString("2hNMLYb3DPqTKPi1s2KuSCYNMzoJBP524JUyEiS1dTA6")
 	t.Log(hex.EncodeToString(pubkey.Bytes()))
-	pubkey=common.PublicKeyFromString("4amNawQen9W2ryD9qAn3rwVRMCJJqVWjXWGojqe2RNVh")
+	pubkey = common.PublicKeyFromString("4amNawQen9W2ryD9qAn3rwVRMCJJqVWjXWGojqe2RNVh")
 	t.Log(hex.EncodeToString(pubkey.Bytes()))
-	pubkey=common.PublicKeyFromString("9Riwnxn53S4wmy5h5nbQN1gxTCm1EvgqB4Gc5aKDAPyc")
+	pubkey = common.PublicKeyFromString("9Riwnxn53S4wmy5h5nbQN1gxTCm1EvgqB4Gc5aKDAPyc")
 	t.Log(hex.EncodeToString(pubkey.Bytes()))
 
-	bts,_:=base58.Decode("2qfwtdJ7BtRnh81Jmbpt3xMMZQRV7xueyNx7cAXsYFSUbKj9gBQvrTcLeQ1VMD96y232tmLMqKSdJDn7b77yGdkg")
+	bts, _ := base58.Decode("GUEnfWC7MMX2B6YNZwHo7ZdxbGNJFpz7wJyc8oiBReCg117UUVvZDmnEsGDgeswHjmPkQQf86KpTfVeHPy1xCsD")
 	t.Log(hex.EncodeToString(bts))
-	pubkey=common.PublicKeyFromString("8pFiM2vyEzyYL7oJqaK2CgHPnARFdziM753rDHWsnhU1")
+	pubkey = common.PublicKeyFromString("8pFiM2vyEzyYL7oJqaK2CgHPnARFdziM753rDHWsnhU1")
 	t.Log(hex.EncodeToString(pubkey.Bytes()))
-	bts,_=base58.Decode("DLQhRbwB3BbswrmFGYT5MDmyMyy4WPJLWYxBzESzcPE5")
+	bts, _ = base58.Decode("5dK58gKYcX1aNVvueLWEKPjcMBEAVgppkrhe1wjh8WCA")
 	t.Log(hex.EncodeToString(bts))
-	bts,_=base58.Decode("824Mgvgbw3kJvYSwnGes1eq71dz7LD1hiZPLEE2929SH")
+	bts, _ = base58.Decode("ojS2XCqRwGSEsukyVKKkg1xx8W2KyxvdnTHtTqEQ6Ye")
+	t.Log(hex.EncodeToString(bts))
+	bts, _ = base58.Decode("5KshHV9Qvj7mHvLtxwttgjPh7a37qX3FZh6SDVrM26sYrkEywi6fb1jR53R2XkLCswXeuB2b2uNBX11tydK9MAyq")
 	t.Log(hex.EncodeToString(bts))
 }
