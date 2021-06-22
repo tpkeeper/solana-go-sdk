@@ -968,8 +968,8 @@ func splitNewToNew() {
 }
 
 func TestGetMultisigTxInfo(t *testing.T) {
-	c := client.NewClient(localClient)
-	info, err := c.GetMultisigTxAccountInfo(context.Background(), "3BEZYiXnz1psgej3VV1mE5ze3ZWu2rsbboA4kn1RTpUR")
+	c := client.NewClient("https://solana-dev-rpc.wetez.io")
+	info, err := c.GetMultisigTxAccountInfo(context.Background(), "Gf7e1YydmrpF7McPam6wXVfZ1rmaKQRvRtA4YGNY1epy")
 	if err != nil {
 		t.Fatal(err)
 	}
